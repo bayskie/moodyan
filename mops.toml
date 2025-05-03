@@ -1,3 +1,4 @@
 [dependencies]
 base = "0.14.9"
-llm = "1.2.0"
+serde = "3.2.2"
+llm = "2.0.0"
