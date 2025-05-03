@@ -10,19 +10,19 @@ import { hashNat } "mo:map/Map";
 import Result "mo:base/Result";
 import Buffer "mo:base/Buffer";
 import Option "mo:base/Option";
-import T "types";
+import Types "types";
 
 actor {
   private stable var journalEntryId = 0;
 
-  type UserJournal = HashMap.HashMap<Nat, T.Journal>;
+  type UserJournal = HashMap.HashMap<Nat, Types.Journal>;
   private var userJournals = HashMap.HashMap<Principal, UserJournal>(10, Principal.equal, Principal.hash);
 
   private func ensureUserJournalExists(user : Principal) {
     if (Option.isNull(userJournals.get(user))) {
       userJournals.put(
         user,
-        HashMap.HashMap<Nat, T.Journal>(
+        HashMap.HashMap<Nat, Types.Journal>(
           10,
           Nat.equal,
           hashNat,
@@ -31,7 +31,7 @@ actor {
     };
   };
 
-  public shared (msg) func createJournal(title : Text, content : Text) : async Result.Result<T.Journal, T.Error> {
+  public shared (msg) func createJournal(title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
     let caller = msg.caller;
 
     if (Text.size(title) == 0) {
@@ -46,7 +46,7 @@ actor {
 
     let timestamp = Time.now();
 
-    let journal : T.Journal = {
+    let journal : Types.Journal = {
       title = title;
       content = content;
       createdAt = timestamp;
@@ -67,7 +67,7 @@ actor {
     };
   };
 
-  public query (msg) func findAllJournals() : async [T.Journal] {
+  public query (msg) func findAllJournals() : async [Types.Journal] {
     let caller = msg.caller;
 
     switch (userJournals.get(caller)) {
@@ -75,7 +75,7 @@ actor {
         return [];
       };
       case (?userJournalMap) {
-        let entriesBuffer = Buffer.Buffer<T.Journal>(userJournalMap.size());
+        let entriesBuffer = Buffer.Buffer<Types.Journal>(userJournalMap.size());
         for ((_, entry) in userJournalMap.entries()) {
           entriesBuffer.add(entry);
         };
@@ -84,11 +84,11 @@ actor {
     };
   };
 
-  private func deserializeAnalysisJSON(json : Text) : async ?T.AnalysisResult {
+  private func deserializeAnalysisJSON(json : Text) : async ?Types.AnalysisResult {
     let parsed = JSON.fromText(json, null);
     switch (parsed) {
       case (#ok(blob)) {
-        let analysisResult : ?T.AnalysisResult = from_candid (blob);
+        let analysisResult : ?Types.AnalysisResult = from_candid (blob);
         return analysisResult;
       };
       case (#err(err)) {
