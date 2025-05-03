@@ -11,27 +11,45 @@
       "type": "custom",
       "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
     },
+    "llm": {
+      "type": "custom",
+      "wasm": "https://github.com/dfinity/llm/releases/latest/download/llm-canister-ollama.wasm",
+      "candid": "https://github.com/dfinity/llm/releases/latest/download/llm-canister-ollama.did",
+      "specified_id": "w36hm-eqaaa-aaaal-qr76a-cai",
+      "remote": {
+        "id": {
+          "ic": "w36hm-eqaaa-aaaal-qr76a-cai"
+        }
+      }
+    },
     "moodyan_backend": {
+      "dependencies": ["llm"],
       "main": "src/moodyan_backend/main.mo",
       "type": "motoko"
     },
     "moodyan_frontend": {
-      "dependencies": [
-        "moodyan_backend"
-      ],
-      "source": [
-        "src/moodyan_frontend/dist"
-      ],
+      "dependencies": ["moodyan_backend"],
+      "source": ["src/moodyan_frontend/dist"],
       "type": "assets",
       "workspace": "moodyan_frontend"
+    }
+  },
+  "networks": {
+    "local": {
+      "bind": "0.0.0.0:8080",
+      "type": "ephemeral"
     }
   },
   "defaults": {
     "build": {
       "args": "",
       "packtool": "mops sources"
+    },
+    "replica": {
+      "subnet_type": "system"
     }
   },
   "output_env_file": ".env",
-  "version": 1
+  "version": 1,
+  "dfx": "0.25.0"
 }
