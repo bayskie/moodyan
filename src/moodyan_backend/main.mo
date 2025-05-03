@@ -8,8 +8,8 @@ import Time "mo:base/Time";
 import Nat "mo:base/Nat";
 import { hashNat } "mo:map/Map";
 import Result "mo:base/Result";
-import Buffer "mo:base/Buffer";
 import Option "mo:base/Option";
+import Iter "mo:base/Iter";
 import Types "types";
 
 actor {
@@ -18,7 +18,7 @@ actor {
   type UserJournal = HashMap.HashMap<Nat, Types.Journal>;
   private var userJournals = HashMap.HashMap<Principal, UserJournal>(10, Principal.equal, Principal.hash);
 
-  private func ensureUserJournalExists(user : Principal) {
+  private shared func ensureUserJournalExists(user : Principal) {
     if (Option.isNull(userJournals.get(user))) {
       userJournals.put(
         user,
@@ -31,55 +31,126 @@ actor {
     };
   };
 
-  public shared (msg) func createJournal(title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
-    let caller = msg.caller;
-
+  public shared ({ caller }) func createJournal(title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
     if (Text.size(title) == 0) {
-      return #err(#InvalidInput);
+      return #err(#InvalidInput("Journal title cannot be empty"));
     };
 
     if (Text.size(content) == 0) {
-      return #err(#InvalidInput);
+      return #err(#InvalidInput("Journal content cannot be empty"));
     };
 
     ensureUserJournalExists(caller);
 
     let timestamp = Time.now();
+    journalEntryId += 1;
 
     let journal : Types.Journal = {
-      title = title;
-      content = content;
+      id = journalEntryId;
+      title;
+      content;
       createdAt = timestamp;
       updatedAt = timestamp;
       mood = null;
       reflection = null;
     };
 
-    journalEntryId += 1;
     switch (userJournals.get(caller)) {
       case (?userJournal) {
         userJournal.put(journalEntryId, journal);
         return #ok(journal);
       };
       case (_) {
-        return #err(#NotFound);
+        return #err(#NotFound("User journal was not found"));
       };
     };
   };
 
-  public query (msg) func findAllJournals() : async [Types.Journal] {
-    let caller = msg.caller;
-
+  public query ({ caller }) func findAllJournals() : async [Types.Journal] {
     switch (userJournals.get(caller)) {
       case (null) {
         return [];
       };
       case (?userJournalMap) {
-        let entriesBuffer = Buffer.Buffer<Types.Journal>(userJournalMap.size());
-        for ((_, entry) in userJournalMap.entries()) {
-          entriesBuffer.add(entry);
+        return Iter.toArray(
+          Iter.map(
+            userJournalMap.entries(),
+            func((_, journal) : (Nat, Types.Journal)) : Types.Journal {
+              return journal;
+            },
+          )
+        );
+      };
+    };
+  };
+
+  public query ({ caller }) func findJournalById(id : Nat) : async ?Types.Journal {
+    switch (userJournals.get(caller)) {
+      case (null) {
+        return null;
+      };
+      case (?userJournalMap) {
+        return userJournalMap.get(id);
+      };
+    };
+  };
+
+  public shared ({ caller }) func updateJournalById(id : Nat, title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
+    if (Text.size(title) == 0) {
+      return #err(#InvalidInput("Journal title cannot be empty"));
+    };
+
+    if (Text.size(content) == 0) {
+      return #err(#InvalidInput("Journal content cannot be empty"));
+    };
+
+    ensureUserJournalExists(caller);
+
+    let existingJournal : ?Types.Journal = await findJournalById(id);
+    switch (existingJournal) {
+      case (null) {
+        return #err(#NotFound("Journal was not found"));
+      };
+      case (?existingJournal) {
+        let updatedJournal : Types.Journal = {
+          id = existingJournal.id;
+          title;
+          content;
+          mood = existingJournal.mood;
+          reflection = existingJournal.reflection;
+          createdAt = existingJournal.createdAt;
+          updatedAt = Time.now();
         };
-        return Buffer.toArray(entriesBuffer);
+
+        switch (userJournals.get(caller)) {
+          case (?userJournal) {
+            userJournal.put(id, updatedJournal);
+            return #ok(updatedJournal);
+          };
+          case (_) {
+            return #err(#NotFound("User journal was not found"));
+          };
+        };
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteJournalById(id : Nat) : async Result.Result<Types.Journal, Types.Error> {
+    switch (userJournals.get(caller)) {
+      case (null) {
+        return #err(#NotFound("User journal was not found"));
+      };
+      case (?userJournalMap) {
+        let journal : ?Types.Journal = userJournalMap.get(id);
+        switch (journal) {
+          case (null) {
+            return #err(#NotFound("Journal was not found"));
+          };
+          case (?journal) {
+            userJournalMap.delete(id);
+            return #ok(journal);
+          };
+        };
       };
     };
   };
