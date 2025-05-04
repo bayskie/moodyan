@@ -1,0 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
+
+.login {
+    background-image: url('../images/Login.png');
+    background-size: cover;
+  }
+
+.title {
+    margin-left: 150px;
+    margin-top: -50px;
+  }
+  
+.title h1{
+    font-weight: 800;
+    font-family: "Nunito", sans-serif;
+  }
