@@ -12,6 +12,7 @@ const LoginPage = () => {
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  // Initialize checkAuthentication
   useEffect(() => {
     const checkAuthentication = async () => {
       const authClient = await AuthClient.create();
