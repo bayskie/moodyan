@@ -18,7 +18,7 @@ actor {
   type UserJournal = HashMap.HashMap<Nat, Types.Journal>;
   private var userJournals = HashMap.HashMap<Principal, UserJournal>(10, Principal.equal, Principal.hash);
 
-  private shared func ensureUserJournalExists(user : Principal) {
+  private func ensureUserJournalExists(user : Principal) {
     if (Option.isNull(userJournals.get(user))) {
       userJournals.put(
         user,
@@ -31,7 +31,7 @@ actor {
     };
   };
 
-  public shared ({ caller }) func createJournal(title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
+  private func validateJournal(title : Text, content : Text) : Result.Result<Text, Types.Error> {
     if (Text.size(title) == 0) {
       return #err(#InvalidInput("Journal title cannot be empty"));
     };
@@ -40,19 +40,53 @@ actor {
       return #err(#InvalidInput("Journal content cannot be empty"));
     };
 
+    if (Text.size(title) > 100) {
+      return #err(#InvalidInput("Journal title cannot be longer than 100 characters"));
+    };
+
+    if (Text.size(content) > 1000) {
+      return #err(#InvalidInput("Journal content cannot be longer than 1000 characters"));
+    };
+
+    return #ok("Journal validated successfully");
+  };
+
+  public shared ({ caller }) func createJournal(
+    title : Text,
+    content : Text,
+  ) : async Result.Result<Types.Journal, Types.Error> {
     ensureUserJournalExists(caller);
+
+    let validationResult = validateJournal(title, content);
+    switch (validationResult) {
+      case (#ok(_)) {};
+      case (#err(error)) return #err(error);
+    };
 
     let timestamp = Time.now();
     journalEntryId += 1;
 
-    let journal : Types.Journal = {
+    let baseJournal = {
       id = journalEntryId;
-      title;
-      content;
+      title = title;
+      content = content;
       createdAt = timestamp;
       updatedAt = timestamp;
-      mood = null;
-      reflection = null;
+      mood = ?"";
+      reflection = ?"";
+    };
+
+    let analysisResult : ?Types.AnalysisResult = await analyzeJournal(content);
+
+    let journal = switch (analysisResult) {
+      case (?analysisResultValue) {
+        {
+          baseJournal with
+          mood = ?analysisResultValue.mood;
+          reflection = ?analysisResultValue.reflection;
+        };
+      };
+      case (null) baseJournal;
     };
 
     switch (userJournals.get(caller)) {
@@ -95,16 +129,18 @@ actor {
     };
   };
 
-  public shared ({ caller }) func updateJournalById(id : Nat, title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
-    if (Text.size(title) == 0) {
-      return #err(#InvalidInput("Journal title cannot be empty"));
-    };
-
-    if (Text.size(content) == 0) {
-      return #err(#InvalidInput("Journal content cannot be empty"));
-    };
-
+  public shared ({ caller }) func updateJournalById(
+    id : Nat,
+    title : Text,
+    content : Text,
+  ) : async Result.Result<Types.Journal, Types.Error> {
     ensureUserJournalExists(caller);
+
+    let validationResult = validateJournal(title, content);
+    switch (validationResult) {
+      case (#ok(_)) {};
+      case (#err(error)) return #err(error);
+    };
 
     let existingJournal : ?Types.Journal = await findJournalById(id);
     switch (existingJournal) {
@@ -114,8 +150,8 @@ actor {
       case (?existingJournal) {
         let updatedJournal : Types.Journal = {
           id = existingJournal.id;
-          title;
-          content;
+          title = title;
+          content = content;
           mood = existingJournal.mood;
           reflection = existingJournal.reflection;
           createdAt = existingJournal.createdAt;
@@ -155,7 +191,7 @@ actor {
     };
   };
 
-  private func deserializeAnalysisJSON(json : Text) : async ?Types.AnalysisResult {
+  private func deserializeAnalysisJSON(json : Text) : ?Types.AnalysisResult {
     let parsed = JSON.fromText(json, null);
     switch (parsed) {
       case (#ok(blob)) {
@@ -169,14 +205,17 @@ actor {
     };
   };
 
-  private func analyzeJournal(journalContent : Text) : async Text {
+  private func analyzeJournal(journalContent : Text) : async ?Types.AnalysisResult {
     let prompt = "You are a compassionate psychologist. Analyze journal and reply ONLY with JSON: {\"mood\": \"happy|sad|angry|anxious|exhausted|neutral\", \"reflection\": \"personal, empathetic, and supportive message\"}. Choose only ONE mood from the list. Journal: " # journalContent;
 
     try {
       let rawJSON = await LLM.prompt(#Llama3_1_8B, prompt);
-      return rawJSON;
+      return deserializeAnalysisJSON(rawJSON);
     } catch (_) {
-      return "{\"mood\": \"neutral\", \"reflection\": \"Sorry, I could not analyze your journal. I hope you have a good day!\"}";
+      return ?{
+        mood = "neutral";
+        reflection = "Sorry, I could not analyze your journal.";
+      };
     };
   };
 };
