@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { AuthClient } from "@dfinity/auth-client";
-import { PieChart, Pie, Cell, Tooltip, Legend, Label } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, Label } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { FaSearch, FaPen, FaTrashAlt } from "react-icons/fa";
 import { DayPicker } from "react-day-picker";
@@ -104,7 +104,7 @@ const MoodButton = ({ mood, isActive, onClick }) => {
       className={`mood-btn ${isActive ? 'active' : ''}`}
       onClick={onClick}
     >
-      <img src={imgSrc} alt={alt} className="mood-filter" style={{ width: '50px', height: '50px' }} />
+      <img src={imgSrc} alt={alt} className="mood-filter" />
     </button>
   );
 };
@@ -115,15 +115,11 @@ const MoodStatItem = ({ name, value }) => {
   const { imgSrc, alt } = MOOD_ASSETS[moodKey] || MOOD_ASSETS.neutral;
 
   return (
-    <div className="mood-stat-item text-center me-3">
+    <div className="mood-stat-item">
       <img
-        className="p-2"
         src={imgSrc}
         alt={alt}
-        style={{
-          width: name === 'Happy' ? '50px' : '40px',
-          height: name === 'Happy' ? '50px' : '40px'
-        }}
+        className="mood-emojis"
       />
       <h6 className="title-statistik text-center">
         {value}x
@@ -136,7 +132,6 @@ const MoodStatItem = ({ name, value }) => {
 const MoodPieChart = ({ tasks, totalTasks, labelText }) => {
   return (
     <PieChart width={250} height={250}>
-      <Tooltip />
       <Pie
         data={tasks}
         nameKey="name"
@@ -180,6 +175,7 @@ const MoodPieChart = ({ tasks, totalTasks, labelText }) => {
           }}
         />
       </Pie>
+      <Tooltip />
     </PieChart>
   );
 };
@@ -188,19 +184,24 @@ const MoodPieChart = ({ tasks, totalTasks, labelText }) => {
 const handleLogout = async () => {
   const authClient = await AuthClient.create();
   await authClient.logout();
-  localStorage.removeItem("nickname"); // Optional: clear custom data
-  window.location.href = "/"; // Redirect to login or landing page
+  localStorage.removeItem("nickname");
+  window.location.href = "/";
 };
-
 
 function Home() {
   const [nickname, setNickname] = useState("");
-  const [selected, setSelected] = useState("");
+  const [selected, setSelected] = useState(null);
   const [selectedMood, setSelectedMood] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [journalEntries, setJournalEntries] = useState([]);
+  const [sidebarActive, setSidebarActive] = useState(false);
   const navigate = useNavigate();
   const { playSound } = useAudio();
+
+  // Toggle sidebar for mobile
+  const toggleSidebar = () => {
+    setSidebarActive(!sidebarActive);
+  };
 
   // SAVE NICKNAME USER TO LOCALSTORAGE
   useEffect(() => {
@@ -358,18 +359,16 @@ function Home() {
     navigate('/add-journal');
   };
 
-  // MODIFIED: Edit journal function to store entry to edit in localStorage 
+  // Edit journal function
   const handleEditJournal = (id) => {
     const journalToEdit = journalEntries.find(entry => entry.id === id);
     if (journalToEdit) {
-      // Store the journal entry to edit in localStorage
       localStorage.setItem('journalToEdit', JSON.stringify(journalToEdit));
-      // Navigate to the AddJournal component
       navigate('/add-journal');
     }
   };
 
-  // MODIFIED: Delete journal with SweetAlert2
+  // Delete journal with SweetAlert2
   const handleDeleteJournal = (id) => {
     Swal.fire({
       title: 'Are you sure?',
@@ -381,13 +380,9 @@ function Home() {
       confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
       if (result.isConfirmed) {
-        // Remove from state
         const updatedEntries = journalEntries.filter(entry => entry.id !== id);
         setJournalEntries(updatedEntries);
-
-        // Update localStorage
         localStorage.setItem('journalEntries', JSON.stringify(updatedEntries));
-
         Swal.fire(
           'Deleted!',
           'Your journal has been deleted.',
@@ -399,13 +394,31 @@ function Home() {
 
   return (
     <div className="app">
+      {/* Mobile Sidebar Toggle Button */}
+      <nav className="navbar navbar-expand-lg navbar-light bg-white fixed-top d-lg-none">
+        <div className="container-fluid">
+          <a className="navbar-brand" href="#">Moodyan</a>
+          <button 
+            className="navbar-toggler" 
+            type="button" 
+            onClick={toggleSidebar}
+            aria-controls="navbarContent" 
+            aria-expanded="false" 
+            aria-label="Toggle navigation"
+          >
+            <span className="navbar-toggler-icon"></span>
+          </button>
+        </div>
+      </nav>
+
       {/* SIDEBAR */}
-      <div className="sidebar">
+      <div className={`sidebar ${sidebarActive ? 'active' : ''}`}>
         <h4 className='font-caveat'>Hi there, {nickname}!</h4>
-                <hr />
+        <hr />
+        
         {/* FILTER CALENDAR */}
         <div className="filter-section">
-          <h5 className='mt-2'><b>Filter by Calendar</b></h5>
+          <h5><b>Filter by Calendar</b></h5>
           <DayPicker
             className="custom-calendar"
             mode="single"
@@ -442,9 +455,9 @@ function Home() {
         </div>
 
         {/* FILTER BY EMOT */}
-        <div className="filter-section" style={{ marginTop: "-60px" }}>
+        <div className="filter-section">
           <div className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-2"><b>Filter by Emot</b></h5>
+            <h5><b>Filter by Emot</b></h5>
             {selectedMood && (
               <button onClick={() => setSelectedMood(null)} className="clear-filter-btn">
                 Clear
@@ -464,7 +477,7 @@ function Home() {
           </div>
 
           {selectedMood && (
-            <div className="selected-mood-info pt-2">
+            <div className="selected-mood-info">
               <p><b>Journal about {selectedMood}</b></p>
             </div>
           )}
@@ -472,134 +485,135 @@ function Home() {
 
         <div className="logo-section">
           <h4 className='font-caveat'>Moodyan</h4>
-        </div>
-
-        <button className="btn btn-outline-danger" onClick={handleLogout}>
-          Logout
-        </button>
-      </div>
-
-      {/* STATISTIC */}
-      <div className='row mood-journey'>
-        <div className="col-lg-4 d-flex justify-content-center align-items-center">
-          <div className="dominant-mood-center">
-            <MoodPieChart
-              tasks={tasks}
-              totalTasks={totalTasks}
-              labelText={tasksNameLabel}
-            />
-          </div>
-        </div>
-
-        {/* Mood Icons Section */}
-        <div className="col-lg-6 mx-3 my-5">
-          <div className='d-flex flex-wrap'>
-            {tasks.map((mood, index) => (
-              <MoodStatItem
-                key={index}
-                name={mood.name}
-                value={mood.value}
-              />
-            ))}
-          </div>
-
-          <div>
-            <h1 className='title-statistik'>
-              {totalTasks > 0 ? (
-                <>You felt <span>{dominantMood.name.toLowerCase()}</span> {dominantMood.value} times!</>
-              ) : (
-                <>No journal entries yet</>
-              )}
-            </h1>
-            {totalTasks > 0 && <p>{getMoodMessage(dominantMood)}</p>}
-          </div>
+          <button className="btn btn-outline-danger w-100 mt-2" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </div>
 
-      <div className="quote-section"></div>
-
-      {/* CARD JOURNAL */}
-      <div className="journal-section">
-        <h5 className='mt-4 mb-3 position-relative w-100'>
-          <b>Journal Entries   </b>
-          {(selected || selectedMood) && (
-            <span className=''>
-              {/* <small className='me-2'>
-        (Filtered by:
-        {selected && ` Date: ${selected.toLocaleDateString()}`}
-        {selected && selectedMood && ', '}
-        {selectedMood && ` Mood: ${selectedMood}`})
-      </small> */}
-              <button
-                onClick={clearAllFilters}
-                className='btn btn-success btn-sm'
-              >
-                Show All
-              </button>
-            </span>
-          )}
-        </h5>
-
-        <div className="search-filter">
-          <div className="search-bar">
-            <FaSearch style={{ marginLeft: "30px" }} />
-            <input
-              type="text"
-              placeholder="Search through your journey"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="journal-entries">
-          <div
-            className="journal-card align-items-center justify-content-center d-flex"
-            onClick={handleAddJournal}
-          >
-            <div className="plus-icon">+</div>
-            <p><b>New Journal</b></p>
-          </div>
-
-          {filteredJournals.length > 0 ? (
-            filteredJournals.map(entry => (
-              <div className={`journal-card ${entry.mood}`} key={entry.id}>
-                <div className='d-flex'>
-                  <div>
-                    <h3><b>{entry.title}</b></h3>
-                    <p className="journal-date">{entry.date}</p>
-                  </div>
-                  <div className="mood-indicator">
-                    <span className="mood-emoji">{moodEmojis[entry.mood]}</span>
-                  </div>
-                </div>
-                <p className="journal-content">{entry.content.length > 100 ? entry.content.substring(0, 100) + '...' : entry.content}</p>
-                <div className="journal-actions">
-                  <button
-                    className='btn-card'
-                    onClick={() => handleEditJournal(entry.id)}
-                  >
-                    <FaPen size={14} />
-                    <span> Edit</span>
-                  </button>
-
-                  <button
-                    className='btn-card'
-                    onClick={() => handleDeleteJournal(entry.id)}
-                  >
-                    <FaTrashAlt size={14} />
-                    <span> Delete</span>
-                  </button>
-                </div>
+      {/* MAIN CONTENT */}
+      <div className={`main-content ${sidebarActive ? 'active' : ''}`}>
+        {/* STATISTIC */}
+        <div className="mood-journey">
+          <div className="row">
+            <div className="col-lg-4 col-md-12">
+              <div className="dominant-mood-center">
+                <MoodPieChart
+                  tasks={tasks}
+                  totalTasks={totalTasks}
+                  labelText={tasksNameLabel}
+                />
               </div>
-            ))
-          ) : (
-            <div className="no-entries">
-              No journal entries found
-              {selected && ` for ${selected.toLocaleDateString()}`}
-              {selectedMood && ` with mood: ${selectedMood}`}
             </div>
-          )}
+
+            {/* Mood Icons Section */}
+            <div className="col-lg-8 col-md-12 statistic">
+              <div className='d-flex flex-wrap'>
+                {tasks.map((mood, index) => (
+                  <MoodStatItem
+                    key={index}
+                    name={mood.name}
+                    value={mood.value}
+                  />
+                ))}
+              </div>
+
+              <div>
+                <h1 className='title-statistik'>
+                  {totalTasks > 0 ? (
+                    <>You felt <span>{dominantMood.name.toLowerCase()}</span> {dominantMood.value} {dominantMood.value === 1 ? 'time' : 'times'}!</>
+                  ) : (
+                    <>No journal entries yet</>
+                  )}
+                </h1>
+                {totalTasks > 0 && <p>{getMoodMessage(dominantMood)}</p>}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* QUOTE SECTION */}
+        <div className="quote-section">
+          <h2 className="font-caveat">Dreams grow not in comfort, but in the courage to begin.</h2>
+        </div>
+
+        {/* CARD JOURNAL */}
+        <div className="journal-section">
+          <h5>
+            <b>Journal Entries</b>
+            {(selected || selectedMood) && (
+              <span className='ms-2'>
+                <button
+                  onClick={clearAllFilters}
+                  className='btn btn-success btn-sm'
+                >
+                  Show All
+                </button>
+              </span>
+            )}
+          </h5>
+
+          <div className="search-filter">
+            <div className="search-bar">
+              <FaSearch />
+              <input
+                type="text"
+                placeholder="Search through your journey"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="journal-entries">
+            <div
+              className="journal-card align-items-center justify-content-center d-flex"
+              onClick={handleAddJournal}
+            >
+              <div className="plus-icon">+</div>
+              <p><b>New Journal</b></p>
+            </div>
+
+            {filteredJournals.length > 0 ? (
+              filteredJournals.map(entry => (
+                <div className={`journal-card ${entry.mood}`} key={entry.id}>
+                  <div className='d-flex'>
+                    <div>
+                      <h3><b>{entry.title}</b></h3>
+                      <p className="journal-date">{entry.date}</p>
+                    </div>
+                    <div className="mood-indicator">
+                      <span className="mood-emoji">{moodEmojis[entry.mood]}</span>
+                    </div>
+                  </div>
+                  <p className="journal-content">{entry.content.length > 100 ? entry.content.substring(0, 100) + '...' : entry.content}</p>
+                  <div className="journal-actions">
+                    <button
+                      className='btn-card'
+                      onClick={() => handleEditJournal(entry.id)}
+                    >
+                      <FaPen size={14} />
+                      <span> Edit</span>
+                    </button>
+
+                    <button
+                      className='btn-card'
+                      onClick={() => handleDeleteJournal(entry.id)}
+                    >
+                      <FaTrashAlt size={14} />
+                      <span> Delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="no-entries">
+                No journal entries found
+                {selected && ` for ${selected.toLocaleDateString()}`}
+                {selectedMood && ` with mood: ${selectedMood}`}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

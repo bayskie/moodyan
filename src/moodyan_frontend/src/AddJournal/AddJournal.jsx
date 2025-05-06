@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import CardHappy from '../images/CardHappy.png';
 import CardSad from '../images/CardSad.png';
 import CardAngry from '../images/CardAngry.png';
 import CardAnxious from '../images/CardAnxious.png';
 import CardExhausted from '../images/CardExhausted.png';
 import CardNeutral from '../images/CardNeutral.png';
+import './AddJournal.css'; // Import the new CSS file
 
 const AddJournal = () => {
   const [journalTitle, setJournalTitle] = useState('Untitled Journal');
@@ -17,7 +19,7 @@ const AddJournal = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mood, setMood] = useState(null);
   const [isEditing, setIsEditing] = useState(true);
-  const [journalId, setJournalId] = useState(null); // Add state for journal ID
+  const [journalId, setJournalId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -171,35 +173,66 @@ const AddJournal = () => {
   };
 
   const handleDeleteJournal = () => {
-    if (window.confirm('Are you sure you want to delete this journal?')) {
-      // If we have a journal ID, remove it from localStorage
-      if (journalId) {
-        const existingEntries = JSON.parse(localStorage.getItem('journalEntries') || '[]');
-        const updatedEntries = existingEntries.filter(entry => entry.id !== journalId);
-        localStorage.setItem('journalEntries', JSON.stringify(updatedEntries));
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "You want to delete this journal?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#92A75C',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!',
+      cancelButtonText: 'Cancel'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // If we have a journal ID, remove it from localStorage
+        if (journalId) {
+          const existingEntries = JSON.parse(localStorage.getItem('journalEntries') || '[]');
+          const updatedEntries = existingEntries.filter(entry => entry.id !== journalId);
+          localStorage.setItem('journalEntries', JSON.stringify(updatedEntries));
+        }
+        
+        // Show success message
+        Swal.fire({
+          title: 'Deleted!',
+          text: 'Your journal has been deleted.',
+          icon: 'success',
+          confirmButtonColor: '#92A75C',
+          timer: 1500
+        });
+        
+        // Reset the form
+        setJournalTitle('Untitled Journal');
+        setJournalContent('');
+        setAiReflection(null);
+        setMood(null);
+        setIsSaved(false);
+        setIsEditing(true);
+        setJournalId(null);
+        
+        // Navigate back to home
+        navigate('/home');
       }
-      
-      // Reset the form
-      setJournalTitle('Untitled Journal');
-      setJournalContent('');
-      setAiReflection(null);
-      setMood(null);
-      setIsSaved(false);
-      setIsEditing(true);
-      setJournalId(null);
-      
-      // Navigate back to home
-      navigate('/home');
-    }
+    });
   };
 
   const handleCancel = () => {
     if (isSaved) {
       navigate('/home');
     } else if (journalContent.trim().length > 0) {
-      if (window.confirm('Return to Home? Unsaved changes will be lost.')) {
-        navigate('/home');
-      }
+      Swal.fire({
+        title: 'Unsaved Changes',
+        text: 'Return to Home? Unsaved changes will be lost.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#92A75C',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, leave page',
+        cancelButtonText: 'Stay here'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate('/home');
+        }
+      });
     } else {
       navigate('/home');
     }
@@ -223,31 +256,34 @@ const AddJournal = () => {
   };
 
   return (
-    <div className="container-fluid p-0">
+    <div className="container-fluid p-0 journal-container">
       <div className="row g-0">
-        <div className="col-md-6 border-end" style={{ backgroundColor: '#f8f9fa' }}>
-          <div className="p-4">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h4 className="fw-bold">
-                {isEditing ? (journalId ? 'Edit Journal' : 'Add Journal') : 'Journal Entry'}
+        {/* Journal Editor Column */}
+        <div className="col-lg-6 journal-editor">
+          <div className="p-3 p-md-4">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+              <div className="journal-header">
+                <h4 className="journal-title">
+                  {isEditing ? (journalId ? 'Edit Journal' : 'Add Journal') : 'Journal Entry'}
+                </h4>
                 {lastSaved && (
-                  <small className="text-muted fs-6 d-block">
+                  <small className="journal-date">
                     Last saved: {formatDate(lastSaved)}
                   </small>
                 )}
-              </h4>
-              <div>
+              </div>
+              
+              <div className="journal-buttons">
                 {isEditing ? (
                   <>
                     <button 
-                      className="btn btn-outline-secondary me-2" 
+                      className="btn btn-outline-secondary"
                       onClick={handleCancel}
                     >
                       Cancel
                     </button>
                     <button
-                      className="btn"
-                      style={{backgroundColor:"#92A75C", color:"#F9F5F4"}}
+                      className="btn primary-button"
                       onClick={handleSaveJournal}
                       disabled={journalContent.trim().length === 0}
                     >
@@ -257,15 +293,21 @@ const AddJournal = () => {
                 ) : (
                   <>
                     <button 
-                      className="btn btn-outline-secondary me-2" 
+                      className="btn btn-outline-secondary"
                       onClick={handleBackToHome}
                     >
                       Back to Home
                     </button>
-                    <button className="btn btn-outline-danger me-2" onClick={handleDeleteJournal}>
+                    <button 
+                      className="btn btn-outline-danger"
+                      onClick={handleDeleteJournal}
+                    >
                       Delete
                     </button>
-                    <button className="btn btn-primary" onClick={handleEditJournal}>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={handleEditJournal}
+                    >
                       Edit
                     </button>
                   </>
@@ -283,30 +325,28 @@ const AddJournal = () => {
                   placeholder="Journal Title"
                 />
                 <textarea
-                  className="form-control shadow-sm"
-                  style={{ minHeight: "400px", resize: "vertical" }}
+                  className="form-control shadow-sm journal-content"
                   value={journalContent}
                   onChange={(e) => setJournalContent(e.target.value)}
                   placeholder="Start writing here..."
                 />
               </>
             ) : (
-              <div className="bg-white p-4 rounded shadow-sm">
+              <div className="journal-display">
                 <h3 className="mb-4">{journalTitle}</h3>
-                <div style={{ whiteSpace: 'pre-wrap' }}>
-                  {journalContent}
-                </div>
+                <div>{journalContent}</div>
               </div>
             )}
           </div>
         </div>
         
-        <div className="col-md-6" style={{ backgroundColor: '#f0f7ff' }}>
-          <div className="p-4">
+        {/* AI Reflection Column */}
+        <div className="col-lg-6 journal-reflection">
+          <div className="p-3 p-md-4">
             <h4 className="text-center fw-bold mb-4">AI Reflection</h4>
             
             {isAnalyzing ? (
-              <div className="text-center p-5">
+              <div className="loading-container">
                 <div className="spinner-border text-primary" role="status">
                   <span className="visually-hidden">Loading...</span>
                 </div>
@@ -320,21 +360,20 @@ const AddJournal = () => {
                     <img 
                       src={getMoodCard()} 
                       alt={`${mood} Mood Card`} 
-                      className="img-fluid rounded shadow-sm" 
-                      style={{ maxHeight: '250px' }}
+                      className="img-fluid rounded shadow-sm mood-card" 
                     />
                     <h5 className="mt-3 mb-4 text-center fw-bold">Today's Mood: {mood}</h5>
                   </div>
                 )}
                 
                 {/* AI Reflection */}
-                <div className="bg-white p-4 rounded shadow-sm text-start">
-                  <h5 className="border-bottom pb-2 mb-3">Reflection</h5>
+                <div className="reflection-container">
+                  <h5 className="reflection-title">Reflection</h5>
                   <p>{aiReflection}</p>
                 </div>
               </div>
             ) : (
-              <div className="text-center p-5 bg-white rounded shadow-sm">
+              <div className="empty-reflection">
                 <p>Write your journal and save it to see the AI's reflection!</p>
                 <p className="text-muted">Our AI will analyze your emotions and provide personalized insights.</p>
               </div>

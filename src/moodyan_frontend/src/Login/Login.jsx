@@ -12,7 +12,6 @@ const LoginPage = () => {
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
-  // Initialize checkAuthentication
   useEffect(() => {
     const checkAuthentication = async () => {
       const authClient = await AuthClient.create();
@@ -51,7 +50,7 @@ const LoginPage = () => {
       Swal.fire({
         icon: "error",
         title: "Oops!",
-        text: "Nama panggilan tidak boleh kosong.",
+        text: "Nickname cannot be empty",
       });
       return;
     }
@@ -61,7 +60,7 @@ const LoginPage = () => {
     Swal.fire({
       icon: "success",
       title: "Berhasil!",
-      text: `Halo ${nickname}! Selamat datang di Moodyan.`,
+      text: `Hi ${nickname}, Welcome to Moodyan!`,
     }).then(() => {
       setShowModal(false);
       navigate("/home");
@@ -71,15 +70,15 @@ const LoginPage = () => {
   return (
     <div className="d-flex align-items-center justify-content-center min-vh-100 login">
       <div className="container">
-        <div className="row">
-          <div className="col-md-6 col-lg-5 title">
+        <div className="row justify-content-center justify-content-md-start">
+          <div className="col-12 col-md-10 col-lg-6 title-container text-center text-md-start">
             <h1 className="display-4 fw-bold text-dark mb-2">Moodyan</h1>
-            <p className="fs-5 mb-5">
-              From Mood Swings to Mindful Living —<br /> with AI by Your Side.
+            <p className="fs-5 mb-4">
+              From Mood Swings to Mindful Living — <br /> with AI by Your Side.
             </p>
             {!isFirstLogin && (
               <button
-                className="btn btn-dark px-4 py-3 bg-dark text-white rounded-pill"
+                className="btn btn-dark px-3 py-2 px-md-4 py-md-3 bg-dark text-white rounded-pill mb-4"
                 onClick={handleLogin}
               >
                 Enter with Internet Identity
@@ -90,8 +89,8 @@ const LoginPage = () => {
       </div>
 
       {showModal && (
-        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50">
-          <div className="bg-white p-4 rounded shadow-lg" style={{ maxWidth: "400px" }}>
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 p-3">
+          <div className="bg-white p-3 p-md-4 rounded shadow-lg modal-container">
             <h2 className="fs-4 fw-bold mb-3">Hi! 😊</h2>
             <p className="fs-6 mb-3">
                 Mention your favorite nickname.
