@@ -1,7 +1,4 @@
-import LLM "mo:llm";
-import JSON "mo:serde/JSON";
 import Text "mo:base/Text";
-import Debug "mo:base/Debug";
 import HashMap "mo:base/HashMap";
 import Principal "mo:base/Principal";
 import Time "mo:base/Time";
@@ -11,6 +8,7 @@ import Result "mo:base/Result";
 import Option "mo:base/Option";
 import Iter "mo:base/Iter";
 import Types "types";
+import Utils "utils";
 
 actor {
   private stable var journalEntryId = 0;
@@ -18,46 +16,10 @@ actor {
   type UserJournal = HashMap.HashMap<Nat, Types.Journal>;
   private var userJournals = HashMap.HashMap<Principal, UserJournal>(10, Principal.equal, Principal.hash);
 
-  private func ensureUserJournalExists(user : Principal) {
-    if (Option.isNull(userJournals.get(user))) {
-      userJournals.put(
-        user,
-        HashMap.HashMap<Nat, Types.Journal>(
-          10,
-          Nat.equal,
-          hashNat,
-        ),
-      );
-    };
-  };
-
-  private func validateJournal(title : Text, content : Text) : Result.Result<Text, Types.Error> {
-    if (Text.size(title) == 0) {
-      return #err(#InvalidInput("Journal title cannot be empty"));
-    };
-
-    if (Text.size(content) == 0) {
-      return #err(#InvalidInput("Journal content cannot be empty"));
-    };
-
-    if (Text.size(title) > 100) {
-      return #err(#InvalidInput("Journal title cannot be longer than 100 characters"));
-    };
-
-    if (Text.size(content) > 1000) {
-      return #err(#InvalidInput("Journal content cannot be longer than 1000 characters"));
-    };
-
-    return #ok("Journal validated successfully");
-  };
-
-  public shared ({ caller }) func createJournal(
-    title : Text,
-    content : Text,
-  ) : async Result.Result<Types.Journal, Types.Error> {
+  public shared ({ caller }) func createJournal(title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
     ensureUserJournalExists(caller);
 
-    let validationResult = validateJournal(title, content);
+    let validationResult = Utils.validateJournal(title, content);
     switch (validationResult) {
       case (#ok(_)) {};
       case (#err(error)) return #err(error);
@@ -76,7 +38,7 @@ actor {
       reflection = ?"";
     };
 
-    let analysisResult : ?Types.AnalysisResult = await analyzeJournal(content);
+    let analysisResult : ?Types.AnalysisResult = await Utils.analyzeJournal(content);
 
     let journal = switch (analysisResult) {
       case (?analysisResultValue) {
@@ -89,24 +51,22 @@ actor {
       case (null) baseJournal;
     };
 
-    switch (userJournals.get(caller)) {
-      case (?userJournal) {
+    return withUserJournal<Types.Journal>(
+      caller,
+      #err(#NotFound("User journal was not found")),
+      func(userJournal) {
         userJournal.put(journalEntryId, journal);
         return #ok(journal);
-      };
-      case (_) {
-        return #err(#NotFound("User journal was not found"));
-      };
-    };
+      },
+    );
   };
 
   public query ({ caller }) func findAllJournals() : async [Types.Journal] {
-    switch (userJournals.get(caller)) {
-      case (null) {
-        return [];
-      };
-      case (?userJournalMap) {
-        return Iter.toArray(
+    return withUserJournalQuery<[Types.Journal]>(
+      caller,
+      [],
+      func(userJournalMap) {
+        Iter.toArray(
           Iter.map(
             userJournalMap.entries(),
             func((_, journal) : (Nat, Types.Journal)) : Types.Journal {
@@ -114,40 +74,25 @@ actor {
             },
           )
         );
-      };
-    };
+      },
+    );
   };
 
-  public query ({ caller }) func findJournalById(id : Nat) : async ?Types.Journal {
-    switch (userJournals.get(caller)) {
-      case (null) {
-        return null;
-      };
-      case (?userJournalMap) {
-        return userJournalMap.get(id);
-      };
-    };
+  public query ({ caller }) func findJournalById(id : Nat) : async Result.Result<Types.Journal, Types.Error> {
+    return _findJournalById(caller, id);
   };
 
-  public shared ({ caller }) func updateJournalById(
-    id : Nat,
-    title : Text,
-    content : Text,
-  ) : async Result.Result<Types.Journal, Types.Error> {
-    ensureUserJournalExists(caller);
-
-    let validationResult = validateJournal(title, content);
+  public shared ({ caller }) func updateJournalById(id : Nat, title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
+    let validationResult = Utils.validateJournal(title, content);
     switch (validationResult) {
       case (#ok(_)) {};
       case (#err(error)) return #err(error);
     };
 
-    let existingJournal : ?Types.Journal = await findJournalById(id);
-    switch (existingJournal) {
-      case (null) {
-        return #err(#NotFound("Journal was not found"));
-      };
-      case (?existingJournal) {
+    let isJournalExist = _findJournalById(caller, id);
+    switch (isJournalExist) {
+      case (#err(error)) return #err(error);
+      case (#ok(existingJournal)) {
         let updatedJournal : Types.Journal = {
           id = existingJournal.id;
           title = title;
@@ -158,10 +103,27 @@ actor {
           updatedAt = Time.now();
         };
 
-        switch (userJournals.get(caller)) {
-          case (?userJournal) {
+        return withUserJournal<Types.Journal>(
+          caller,
+          #err(#NotFound("User journal was not found")),
+          func(userJournal) {
             userJournal.put(id, updatedJournal);
             return #ok(updatedJournal);
+          },
+        );
+      };
+    };
+  };
+
+  public shared ({ caller }) func deleteJournalById(id : Nat) : async Result.Result<Types.Journal, Types.Error> {
+    let isJournalExist = _findJournalById(caller, id);
+    switch (isJournalExist) {
+      case (#err(error)) return #err(error);
+      case (#ok(existingJournal)) {
+        switch (userJournals.get(caller)) {
+          case (?userJournal) {
+            userJournal.delete(id);
+            return #ok(existingJournal);
           };
           case (_) {
             return #err(#NotFound("User journal was not found"));
@@ -171,51 +133,53 @@ actor {
     };
   };
 
-  public shared ({ caller }) func deleteJournalById(id : Nat) : async Result.Result<Types.Journal, Types.Error> {
-    switch (userJournals.get(caller)) {
-      case (null) {
-        return #err(#NotFound("User journal was not found"));
+  private func ensureUserJournalExists(user : Principal) {
+    if (Option.isNull(userJournals.get(user))) {
+      userJournals.put(
+        user,
+        HashMap.HashMap<Nat, Types.Journal>(
+          10,
+          Nat.equal,
+          hashNat,
+        ),
+      );
+    };
+  };
+
+  private func withUserJournalQuery<R>(user : Principal, fallback : R, f : (UserJournal) -> R) : R {
+    switch (userJournals.get(user)) {
+      case (?userJournal) {
+        return f(userJournal);
       };
-      case (?userJournalMap) {
-        let journal : ?Types.Journal = userJournalMap.get(id);
-        switch (journal) {
+      case (_) {
+        return fallback;
+      };
+    };
+  };
+
+  private func withUserJournal<R>(user : Principal, fallback : Result.Result<R, Types.Error>, f : (UserJournal) -> Result.Result<R, Types.Error>) : Result.Result<R, Types.Error> {
+    switch (userJournals.get(user)) {
+      case (?userJournal) {
+        return f(userJournal);
+      };
+      case (_) {
+        return fallback;
+      };
+    };
+  };
+
+  private func _findJournalById(user : Principal, id : Nat) : Result.Result<Types.Journal, Types.Error> {
+    return withUserJournalQuery<Result.Result<Types.Journal, Types.Error>>(
+      user,
+      #err(#NotFound("User journal not found")),
+      func(userJournalMap) {
+        return switch (userJournalMap.get(id)) {
           case (null) {
-            return #err(#NotFound("Journal was not found"));
+            #err(#NotFound("Journal with id " # Nat.toText(id) # " was not found"));
           };
-          case (?journal) {
-            userJournalMap.delete(id);
-            return #ok(journal);
-          };
+          case (?journal) { #ok(journal) };
         };
-      };
-    };
-  };
-
-  private func deserializeAnalysisJSON(json : Text) : ?Types.AnalysisResult {
-    let parsed = JSON.fromText(json, null);
-    switch (parsed) {
-      case (#ok(blob)) {
-        let analysisResult : ?Types.AnalysisResult = from_candid (blob);
-        return analysisResult;
-      };
-      case (#err(err)) {
-        Debug.print("error: " # err);
-        return null;
-      };
-    };
-  };
-
-  private func analyzeJournal(journalContent : Text) : async ?Types.AnalysisResult {
-    let prompt = "You are a compassionate psychologist. Analyze journal and reply ONLY with JSON: {\"mood\": \"happy|sad|angry|anxious|exhausted|neutral\", \"reflection\": \"personal, empathetic, and supportive message\"}. Choose only ONE mood from the list. Journal: " # journalContent;
-
-    try {
-      let rawJSON = await LLM.prompt(#Llama3_1_8B, prompt);
-      return deserializeAnalysisJSON(rawJSON);
-    } catch (_) {
-      return ?{
-        mood = "neutral";
-        reflection = "Sorry, I could not analyze your journal.";
-      };
-    };
+      },
+    );
   };
 };
