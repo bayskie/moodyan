@@ -7,6 +7,8 @@ import { hashNat } "mo:map/Map";
 import Result "mo:base/Result";
 import Option "mo:base/Option";
 import Iter "mo:base/Iter";
+import Array "mo:base/Array";
+import Int "mo:base/Int";
 import Types "types";
 import Utils "utils";
 
@@ -61,18 +63,44 @@ actor {
     );
   };
 
-  public query ({ caller }) func findAllJournals() : async [Types.Journal] {
+  public query ({ caller }) func findAllJournals(moodFilter : ?Text, dateFilter : ?Time.Time) : async [Types.Journal] {
     return withUserJournalQuery<[Types.Journal]>(
       caller,
       [],
       func(userJournalMap) {
-        Iter.toArray(
+        let allJournals = Iter.toArray(
           Iter.map(
             userJournalMap.entries(),
             func((_, journal) : (Nat, Types.Journal)) : Types.Journal {
               return journal;
             },
           )
+        );
+
+        let filteredJournals = Array.filter<Types.Journal>(
+          allJournals,
+          func(journal) {
+            let matchesMood = switch (moodFilter) {
+              case (null) { true };
+              case (?mood) { journal.mood == ?mood };
+            };
+
+            let matchesDate = switch (dateFilter) {
+              case (null) { true };
+              case (?date) {
+                Utils.toEpochDay(journal.createdAt) == Utils.toEpochDay(date);
+              };
+            };
+
+            return matchesMood and matchesDate;
+          },
+        );
+
+        Array.sort<Types.Journal>(
+          filteredJournals,
+          func(a, b) {
+            Int.compare(b.createdAt, a.createdAt);
+          },
         );
       },
     );
