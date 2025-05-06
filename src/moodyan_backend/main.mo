@@ -18,6 +18,15 @@ actor {
   type UserJournal = HashMap.HashMap<Nat, Types.Journal>;
   private var userJournals = HashMap.HashMap<Principal, UserJournal>(10, Principal.equal, Principal.hash);
 
+  // Testing
+  public query func helloWorld() : async Text {
+    return "Hello world!";
+  };
+
+  public query ({ caller }) func whoami() : async Principal {
+    return caller;
+  };
+
   public shared ({ caller }) func createJournal(title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
     ensureUserJournalExists(caller);
 

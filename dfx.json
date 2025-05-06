@@ -23,7 +23,7 @@
       }
     },
     "moodyan_backend": {
-      "dependencies": ["llm"],
+      "dependencies": ["llm", "internet_identity"],
       "main": "src/moodyan_backend/main.mo",
       "type": "motoko"
     },
@@ -34,19 +34,10 @@
       "workspace": "moodyan_frontend"
     }
   },
-  "networks": {
-    "local": {
-      "bind": "0.0.0.0:8080",
-      "type": "ephemeral"
-    }
-  },
   "defaults": {
     "build": {
       "args": "",
       "packtool": "mops sources"
-    },
-    "replica": {
-      "subnet_type": "system"
     }
   },
   "output_env_file": ".env",

@@ -1,61 +1,66 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
 import { AuthClient } from "@dfinity/auth-client";
-import { PieChart, Pie, Cell, Tooltip, Label } from 'recharts';
-import { useNavigate } from 'react-router-dom';
+import { PieChart, Pie, Cell, Tooltip, Label } from "recharts";
+import { useNavigate } from "react-router-dom";
 import { FaSearch, FaPen, FaTrashAlt } from "react-icons/fa";
 import { DayPicker } from "react-day-picker";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 import "react-day-picker/style.css";
-import '../Home/Home.css';
+import "../assets/styles/home.css";
 
 // Import all mood images directly for better path management
-import HappyImg from '../images/happy.png';
-import SadImg from '../images/sad.png';
-import AngryImg from '../images/angry.png';
-import AnxiousImg from '../images/anxious.png';
-import ExhaustedImg from '../images/exhausted.png';
-import NeutralImg from '../images/neutral.png';
-import HappySound from '../music/happy.mp3';
-import AngrySound from '../music/angry.opus';
+import HappyImg from "../assets/images/happy.png";
+import SadImg from "../assets/images/sad.png";
+import AngryImg from "../assets/images/angry.png";
+import AnxiousImg from "../assets/images/anxious.png";
+import ExhaustedImg from "../assets/images/exhausted.png";
+import NeutralImg from "../assets/images/neutral.png";
+import HappySound from "../assets/music/happy.mp3";
+import AngrySound from "../assets/music/angry.opus";
 
-// Use imported assets in a centralized object
 const MOOD_ASSETS = {
   happy: {
     imgSrc: HappyImg,
-    alt: 'Happy',
-    color: '#FFD25B',
-    soundSrc: HappySound
+    alt: "Happy",
+    color: "#FFD25B",
+    soundSrc: HappySound,
   },
   sad: {
     imgSrc: SadImg,
-    alt: 'Sad',
-    color: '#52CBEC',
-    soundSrc: null
+    alt: "Sad",
+    color: "#52CBEC",
+    soundSrc: null,
   },
   angry: {
     imgSrc: AngryImg,
-    alt: 'Angry',
-    color: '#CA4B45',
-    soundSrc: AngrySound
+    alt: "Angry",
+    color: "#CA4B45",
+    soundSrc: AngrySound,
   },
   anxious: {
     imgSrc: AnxiousImg,
-    alt: 'Anxious',
-    color: '#9C72D9',
-    soundSrc: null
+    alt: "Anxious",
+    color: "#9C72D9",
+    soundSrc: null,
   },
   exhausted: {
     imgSrc: ExhaustedImg,
-    alt: 'Exhausted',
-    color: '#92A75C',
-    soundSrc: null
+    alt: "Exhausted",
+    color: "#92A75C",
+    soundSrc: null,
   },
   neutral: {
     imgSrc: NeutralImg,
-    alt: 'Neutral',
-    color: '#DCE8F4',
-    soundSrc: null
-  }
+    alt: "Neutral",
+    color: "#DCE8F4",
+    soundSrc: null,
+  },
 };
 
 // Custom hook for audio management
@@ -72,7 +77,7 @@ const useAudio = () => {
 
     // Cleanup function
     return () => {
-      Object.values(audioRefs.current).forEach(audio => {
+      Object.values(audioRefs.current).forEach((audio) => {
         if (audio) {
           audio.pause();
           audio.currentTime = 0;
@@ -85,9 +90,11 @@ const useAudio = () => {
     const audio = audioRefs.current[mood];
     if (audio) {
       audio.currentTime = 0;
-      audio.play().catch(error => {
+      audio.play().catch((error) => {
         console.error("Error playing sound:", error);
-        alert("Sound can only be played after user interaction. Click 'OK' then try again.");
+        alert(
+          "Sound can only be played after user interaction. Click 'OK' then try again."
+        );
       });
     }
   };
@@ -101,7 +108,7 @@ const MoodButton = ({ mood, isActive, onClick }) => {
 
   return (
     <button
-      className={`mood-btn ${isActive ? 'active' : ''}`}
+      className={`mood-btn ${isActive ? "active" : ""}`}
       onClick={onClick}
     >
       <img src={imgSrc} alt={alt} className="mood-filter" />
@@ -116,14 +123,8 @@ const MoodStatItem = ({ name, value }) => {
 
   return (
     <div className="mood-stat-item">
-      <img
-        src={imgSrc}
-        alt={alt}
-        className="mood-emojis"
-      />
-      <h6 className="title-statistik text-center">
-        {value}x
-      </h6>
+      <img src={imgSrc} alt={alt} className="mood-emojis" />
+      <h6 className="title-statistik text-center">{value}x</h6>
     </div>
   );
 };
@@ -143,7 +144,14 @@ const MoodPieChart = ({ tasks, totalTasks, labelText }) => {
         fill="#8884d8"
       >
         {tasks.map((entry, index) => (
-          <Cell key={`cell-${index}`} fill={entry.color || MOOD_ASSETS[entry.name.toLowerCase()]?.color || '#ccc'} />
+          <Cell
+            key={`cell-${index}`}
+            fill={
+              entry.color ||
+              MOOD_ASSETS[entry.name.toLowerCase()]?.color ||
+              "#ccc"
+            }
+          />
         ))}
         <Label
           position="center"
@@ -188,11 +196,11 @@ const handleLogout = async () => {
   window.location.href = "/";
 };
 
-function Home() {
+export default function Home() {
   const [nickname, setNickname] = useState("");
   const [selected, setSelected] = useState(null);
   const [selectedMood, setSelectedMood] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [journalEntries, setJournalEntries] = useState([]);
   const [sidebarActive, setSidebarActive] = useState(false);
   const navigate = useNavigate();
@@ -217,9 +225,9 @@ function Home() {
         const parsedEntries = JSON.parse(storedEntries);
 
         // Convert string dates back to Date objects
-        const entriesWithDateObj = parsedEntries.map(entry => ({
+        const entriesWithDateObj = parsedEntries.map((entry) => ({
           ...entry,
-          dateObj: new Date(entry.dateObj)
+          dateObj: new Date(entry.dateObj),
         }));
 
         setJournalEntries(entriesWithDateObj);
@@ -239,7 +247,7 @@ function Home() {
   const dateToMoodMap = useMemo(() => {
     const map = new Map();
 
-    journalEntries.forEach(entry => {
+    journalEntries.forEach((entry) => {
       if (entry.dateObj instanceof Date) {
         const dateKey = `${entry.dateObj.getFullYear()}-${entry.dateObj.getMonth()}-${entry.dateObj.getDate()}`;
         if (!map.has(dateKey)) {
@@ -256,14 +264,17 @@ function Home() {
   }, [journalEntries]);
 
   // RENDER DAY CONTENT
-  const renderDayContent = useCallback((day) => {
-    const dateKey = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
-    const moodsSet = dateToMoodMap.get(dateKey);
-    if (moodsSet) {
-      return <div>{Array.from(moodsSet).join(', ')}</div>;
-    }
-    return day.getDate();
-  }, [dateToMoodMap]);
+  const renderDayContent = useCallback(
+    (day) => {
+      const dateKey = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+      const moodsSet = dateToMoodMap.get(dateKey);
+      if (moodsSet) {
+        return <div>{Array.from(moodsSet).join(", ")}</div>;
+      }
+      return day.getDate();
+    },
+    [dateToMoodMap]
+  );
 
   // CLEAR DATE
   const clearDateSelection = () => {
@@ -278,10 +289,10 @@ function Home() {
       angry: 0,
       anxious: 0,
       exhausted: 0,
-      neutral: 0
+      neutral: 0,
     };
 
-    journalEntries.forEach(entry => {
+    journalEntries.forEach((entry) => {
       if (entry.mood && counts[entry.mood] !== undefined) {
         counts[entry.mood]++;
       }
@@ -293,12 +304,12 @@ function Home() {
   // STATISTIC DATA - derived from actual journal entries
   const tasks = useMemo(() => {
     return [
-      { name: 'Happy', value: moodCounts.happy || 0 },
-      { name: 'Exhausted', value: moodCounts.exhausted || 0 },
-      { name: 'Angry', value: moodCounts.angry || 0 },
-      { name: 'Sad', value: moodCounts.sad || 0 },
-      { name: 'Neutral', value: moodCounts.neutral || 0 },
-      { name: 'Anxious', value: moodCounts.anxious || 0 },
+      { name: "Happy", value: moodCounts.happy || 0 },
+      { name: "Exhausted", value: moodCounts.exhausted || 0 },
+      { name: "Angry", value: moodCounts.angry || 0 },
+      { name: "Sad", value: moodCounts.sad || 0 },
+      { name: "Neutral", value: moodCounts.neutral || 0 },
+      { name: "Anxious", value: moodCounts.anxious || 0 },
     ];
   }, [moodCounts]);
 
@@ -308,7 +319,10 @@ function Home() {
 
   // Find the dominant mood (highest value)
   const dominantMood = useMemo(() => {
-    return tasks.reduce((max, task) => task.value > max.value ? task : max, tasks[0]);
+    return tasks.reduce(
+      (max, task) => (task.value > max.value ? task : max),
+      tasks[0]
+    );
   }, [tasks]);
 
   // Consistent label
@@ -316,7 +330,7 @@ function Home() {
 
   // Generate mood message based on dominant mood
   const getMoodMessage = (mood) => {
-    if (mood.name === 'Happy') {
+    if (mood.name === "Happy") {
       return "That means you had more positive days than negative ones. Keep it up and continue nurturing your positive energy!";
     } else {
       return `You've been feeling ${mood.name.toLowerCase()} quite often. Consider activities that might help improve your mood.`;
@@ -325,24 +339,28 @@ function Home() {
 
   // CARD JOURNAL
   const moodEmojis = {
-    happy: <img src={HappyImg} alt="Happy" className='mood-emojis' />,
-    sad: <img src={SadImg} alt="Sad" className='mood-emojis' />,
-    angry: <img src={AngryImg} alt="Angry" className='mood-emojis' />,
-    anxious: <img src={AnxiousImg} alt="Anxious" className='mood-emojis' />,
-    exhausted: <img src={ExhaustedImg} alt="Exhausted" className='mood-emojis' />,
-    neutral: <img src={NeutralImg} alt="Neutral" className='mood-emojis' />,
+    happy: <img src={HappyImg} alt="Happy" className="mood-emojis" />,
+    sad: <img src={SadImg} alt="Sad" className="mood-emojis" />,
+    angry: <img src={AngryImg} alt="Angry" className="mood-emojis" />,
+    anxious: <img src={AnxiousImg} alt="Anxious" className="mood-emojis" />,
+    exhausted: (
+      <img src={ExhaustedImg} alt="Exhausted" className="mood-emojis" />
+    ),
+    neutral: <img src={NeutralImg} alt="Neutral" className="mood-emojis" />,
   };
 
   const filteredJournals = useMemo(() => {
-    return journalEntries.filter(entry => {
-      const matchesSearch = entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    return journalEntries.filter((entry) => {
+      const matchesSearch =
+        entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         entry.content.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const matchesDate = selected ?
-        (entry.dateObj instanceof Date &&
+      const matchesDate = selected
+        ? entry.dateObj instanceof Date &&
           entry.dateObj.getDate() === selected.getDate() &&
           entry.dateObj.getMonth() === selected.getMonth() &&
-          entry.dateObj.getFullYear() === selected.getFullYear()) : true;
+          entry.dateObj.getFullYear() === selected.getFullYear()
+        : true;
 
       const matchesMood = selectedMood ? entry.mood === selectedMood : true;
       return matchesSearch && matchesDate && matchesMood;
@@ -352,42 +370,40 @@ function Home() {
   const clearAllFilters = () => {
     setSelected(null);
     setSelectedMood(null);
-    setSearchQuery('');
+    setSearchQuery("");
   };
 
   const handleAddJournal = () => {
-    navigate('/add-journal');
+    navigate("/add-journal");
   };
 
   // Edit journal function
   const handleEditJournal = (id) => {
-    const journalToEdit = journalEntries.find(entry => entry.id === id);
+    const journalToEdit = journalEntries.find((entry) => entry.id === id);
     if (journalToEdit) {
-      localStorage.setItem('journalToEdit', JSON.stringify(journalToEdit));
-      navigate('/add-journal');
+      localStorage.setItem("journalToEdit", JSON.stringify(journalToEdit));
+      navigate("/add-journal");
     }
   };
 
   // Delete journal with SweetAlert2
   const handleDeleteJournal = (id) => {
     Swal.fire({
-      title: 'Are you sure?',
+      title: "Are you sure?",
       text: "You won't be able to revert this!",
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#3085d6',
-      cancelButtonColor: '#d33',
-      confirmButtonText: 'Yes, delete it!'
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
     }).then((result) => {
       if (result.isConfirmed) {
-        const updatedEntries = journalEntries.filter(entry => entry.id !== id);
-        setJournalEntries(updatedEntries);
-        localStorage.setItem('journalEntries', JSON.stringify(updatedEntries));
-        Swal.fire(
-          'Deleted!',
-          'Your journal has been deleted.',
-          'success'
+        const updatedEntries = journalEntries.filter(
+          (entry) => entry.id !== id
         );
+        setJournalEntries(updatedEntries);
+        localStorage.setItem("journalEntries", JSON.stringify(updatedEntries));
+        Swal.fire("Deleted!", "Your journal has been deleted.", "success");
       }
     });
   };
@@ -397,13 +413,15 @@ function Home() {
       {/* Mobile Sidebar Toggle Button */}
       <nav className="navbar navbar-expand-lg navbar-light bg-white fixed-top d-lg-none">
         <div className="container-fluid">
-          <a className="navbar-brand" href="#">Moodyan</a>
-          <button 
-            className="navbar-toggler" 
-            type="button" 
+          <a className="navbar-brand" href="#">
+            Moodyan
+          </a>
+          <button
+            className="navbar-toggler"
+            type="button"
             onClick={toggleSidebar}
-            aria-controls="navbarContent" 
-            aria-expanded="false" 
+            aria-controls="navbarContent"
+            aria-expanded="false"
             aria-label="Toggle navigation"
           >
             <span className="navbar-toggler-icon"></span>
@@ -412,13 +430,15 @@ function Home() {
       </nav>
 
       {/* SIDEBAR */}
-      <div className={`sidebar ${sidebarActive ? 'active' : ''}`}>
-        <h4 className='font-caveat'>Hi there, {nickname}!</h4>
+      <div className={`sidebar ${sidebarActive ? "active" : ""}`}>
+        <h4 className="font-caveat">Hi there, {nickname}!</h4>
         <hr />
-        
+
         {/* FILTER CALENDAR */}
         <div className="filter-section">
-          <h5><b>Filter by Calendar</b></h5>
+          <h5>
+            <b>Filter by Calendar</b>
+          </h5>
           <DayPicker
             className="custom-calendar"
             mode="single"
@@ -426,17 +446,17 @@ function Home() {
             onSelect={setSelected}
             showOutsideDays
             modifiersClassNames={{
-              selected: 'my-selected',
-              today: 'my-today'
+              selected: "my-selected",
+              today: "my-today",
             }}
             modifiers={{
               hasEntries: (date) => {
                 const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
                 return dateToMoodMap.has(dateKey);
-              }
+              },
             }}
             components={{
-              DayContent: ({ date }) => renderDayContent(date)
+              DayContent: ({ date }) => renderDayContent(date),
             }}
             footer={
               selected ? (
@@ -449,7 +469,9 @@ function Home() {
                     Clear
                   </button>
                 </div>
-              ) : "Pick a day."
+              ) : (
+                "Pick a day."
+              )
             }
           />
         </div>
@@ -457,9 +479,14 @@ function Home() {
         {/* FILTER BY EMOT */}
         <div className="filter-section">
           <div className="d-flex justify-content-between align-items-center">
-            <h5><b>Filter by Emot</b></h5>
+            <h5>
+              <b>Filter by Emot</b>
+            </h5>
             {selectedMood && (
-              <button onClick={() => setSelectedMood(null)} className="clear-filter-btn">
+              <button
+                onClick={() => setSelectedMood(null)}
+                className="clear-filter-btn"
+              >
                 Clear
               </button>
             )}
@@ -478,21 +505,26 @@ function Home() {
 
           {selectedMood && (
             <div className="selected-mood-info">
-              <p><b>Journal about {selectedMood}</b></p>
+              <p>
+                <b>Journal about {selectedMood}</b>
+              </p>
             </div>
           )}
         </div>
 
         <div className="logo-section">
-          <h4 className='font-caveat'>Moodyan</h4>
-          <button className="btn btn-outline-danger w-100 mt-2" onClick={handleLogout}>
+          <h4 className="font-caveat">Moodyan</h4>
+          <button
+            className="btn btn-outline-danger w-100 mt-2"
+            onClick={handleLogout}
+          >
             Logout
           </button>
         </div>
       </div>
 
       {/* MAIN CONTENT */}
-      <div className={`main-content ${sidebarActive ? 'active' : ''}`}>
+      <div className={`main-content ${sidebarActive ? "active" : ""}`}>
         {/* STATISTIC */}
         <div className="mood-journey">
           <div className="row">
@@ -508,7 +540,7 @@ function Home() {
 
             {/* Mood Icons Section */}
             <div className="col-lg-8 col-md-12 statistic">
-              <div className='d-flex flex-wrap'>
+              <div className="d-flex flex-wrap">
                 {tasks.map((mood, index) => (
                   <MoodStatItem
                     key={index}
@@ -519,9 +551,13 @@ function Home() {
               </div>
 
               <div>
-                <h1 className='title-statistik'>
+                <h1 className="title-statistik">
                   {totalTasks > 0 ? (
-                    <>You felt <span>{dominantMood.name.toLowerCase()}</span> {dominantMood.value} {dominantMood.value === 1 ? 'time' : 'times'}!</>
+                    <>
+                      You felt <span>{dominantMood.name.toLowerCase()}</span>{" "}
+                      {dominantMood.value}{" "}
+                      {dominantMood.value === 1 ? "time" : "times"}!
+                    </>
                   ) : (
                     <>No journal entries yet</>
                   )}
@@ -534,7 +570,9 @@ function Home() {
 
         {/* QUOTE SECTION */}
         <div className="quote-section">
-          <h2 className="font-caveat">Dreams grow not in comfort, but in the courage to begin.</h2>
+          <h2 className="font-caveat">
+            Dreams grow not in comfort, but in the courage to begin.
+          </h2>
         </div>
 
         {/* CARD JOURNAL */}
@@ -542,10 +580,10 @@ function Home() {
           <h5>
             <b>Journal Entries</b>
             {(selected || selectedMood) && (
-              <span className='ms-2'>
+              <span className="ms-2">
                 <button
                   onClick={clearAllFilters}
-                  className='btn btn-success btn-sm'
+                  className="btn btn-success btn-sm"
                 >
                   Show All
                 </button>
@@ -571,25 +609,35 @@ function Home() {
               onClick={handleAddJournal}
             >
               <div className="plus-icon">+</div>
-              <p><b>New Journal</b></p>
+              <p>
+                <b>New Journal</b>
+              </p>
             </div>
 
             {filteredJournals.length > 0 ? (
-              filteredJournals.map(entry => (
+              filteredJournals.map((entry) => (
                 <div className={`journal-card ${entry.mood}`} key={entry.id}>
-                  <div className='d-flex'>
+                  <div className="d-flex">
                     <div>
-                      <h3><b>{entry.title}</b></h3>
+                      <h3>
+                        <b>{entry.title}</b>
+                      </h3>
                       <p className="journal-date">{entry.date}</p>
                     </div>
                     <div className="mood-indicator">
-                      <span className="mood-emoji">{moodEmojis[entry.mood]}</span>
+                      <span className="mood-emoji">
+                        {moodEmojis[entry.mood]}
+                      </span>
                     </div>
                   </div>
-                  <p className="journal-content">{entry.content.length > 100 ? entry.content.substring(0, 100) + '...' : entry.content}</p>
+                  <p className="journal-content">
+                    {entry.content.length > 100
+                      ? entry.content.substring(0, 100) + "..."
+                      : entry.content}
+                  </p>
                   <div className="journal-actions">
                     <button
-                      className='btn-card'
+                      className="btn-card"
                       onClick={() => handleEditJournal(entry.id)}
                     >
                       <FaPen size={14} />
@@ -597,7 +645,7 @@ function Home() {
                     </button>
 
                     <button
-                      className='btn-card'
+                      className="btn-card"
                       onClick={() => handleDeleteJournal(entry.id)}
                     >
                       <FaTrashAlt size={14} />
@@ -619,5 +667,3 @@ function Home() {
     </div>
   );
 }
-
-export default Home;

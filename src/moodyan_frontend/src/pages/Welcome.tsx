@@ -1,12 +1,11 @@
-// LoginPage.js
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthClient } from "@dfinity/auth-client";
 import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Swal from "sweetalert2";
-import './Login.css';
+import "../assets/styles/welcome.css";
 
-const LoginPage = () => {
+export default function Welcome() {
   const navigate = useNavigate();
   const [nickname, setNickname] = useState("");
   const [isFirstLogin, setIsFirstLogin] = useState(false);
@@ -54,9 +53,9 @@ const LoginPage = () => {
       });
       return;
     }
-    
+
     localStorage.setItem("nickname", nickname);
-    
+
     Swal.fire({
       icon: "success",
       title: "Berhasil!",
@@ -92,9 +91,7 @@ const LoginPage = () => {
         <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-dark bg-opacity-50 p-3">
           <div className="bg-white p-3 p-md-4 rounded shadow-lg modal-container">
             <h2 className="fs-4 fw-bold mb-3">Hi! 😊</h2>
-            <p className="fs-6 mb-3">
-                Mention your favorite nickname.
-            </p>
+            <p className="fs-6 mb-3">Mention your favorite nickname.</p>
             <input
               type="text"
               className="form-control border rounded p-2 w-100 mb-3"
@@ -109,10 +106,7 @@ const LoginPage = () => {
               >
                 Cancel
               </button>
-              <button
-                className="btn btn-dark"
-                onClick={handleSetNickname}
-              >
+              <button className="btn btn-dark" onClick={handleSetNickname}>
                 Save and Continue
               </button>
             </div>
@@ -121,6 +115,4 @@ const LoginPage = () => {
       )}
     </div>
   );
-};
-
-export default LoginPage;
+}
