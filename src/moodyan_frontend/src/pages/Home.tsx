@@ -1,10 +1,12 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { PieChart, Pie, Cell, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, Tooltip, Label } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { FaSearch, FaPen, FaTrashAlt } from "react-icons/fa";
 import Swal from "sweetalert2";
 import "../assets/styles/home.css";
 import { useAuth } from "../hooks/use-auth";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/style.css";
 
 // Import mood assets
 import HappyImg from "../assets/images/happy.png";
@@ -19,19 +21,18 @@ import AngrySound from "../assets/music/angry.mp3";
 import AnxiousSound from "../assets/music/anxious.mp3";
 import ExhaustedSound from "../assets/music/exhausted.mp3";
 
-// Interfaces
 interface Journal {
-  id: BigInt;
+  id: bigint;
   title: string;
   content: string;
   mood: string[];
-  createdAt: BigInt;
+  createdAt: bigint;
 }
 
 interface Actor {
   findAllJournals: (arg1: any[], arg2: any[]) => Promise<Journal[]>;
-  getNickname: () => Promise<{ ok: string } | { err: any }>;
-  deleteJournalById: (id: BigInt) => Promise<{ ok: any } | { err: any }>;
+  getNickname: () => Promise<{ ok: string } | { err: unknown }>;
+  deleteJournalById: (id: bigint) => Promise<{ ok: unknown } | { err: unknown }>;
 }
 
 interface AuthContext {
@@ -63,6 +64,7 @@ interface MoodCount {
   anxious: number;
   exhausted: number;
   neutral: number;
+  [key: string]: number;
 }
 
 interface PieChartData {
@@ -71,7 +73,33 @@ interface PieChartData {
   color?: string;
 }
 
-// Mood assets configuration
+interface MoodButtonProps {
+  mood: string;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+interface MoodStatItemProps {
+  name: string;
+  value: number;
+}
+
+interface MoodPieChartProps {
+  tasks: PieChartData[];
+  totalTasks: number;
+  labelText: string;
+}
+
+interface DayContentProps {
+  date: Date;
+  activeModifiers: { [key: string]: boolean };
+}
+
+interface ViewBox {
+  cx: number;
+  cy: number;
+}
+
 const MOOD_ASSETS: Record<string, MoodAsset> = {
   happy: {
     imgSrc: HappyImg,
@@ -111,17 +139,16 @@ const MOOD_ASSETS: Record<string, MoodAsset> = {
   },
 };
 
-// Custom hook for audio management
+type MoodKey = keyof typeof MOOD_ASSETS;
+
 const useAudio = () => {
   const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
-
   useEffect(() => {
     Object.entries(MOOD_ASSETS).forEach(([mood, { soundSrc }]) => {
       if (soundSrc) {
         audioRefs.current[mood] = new Audio(soundSrc);
       }
     });
-
     return () => {
       Object.values(audioRefs.current).forEach((audio) => {
         audio.pause();
@@ -142,20 +169,11 @@ const useAudio = () => {
       });
     }
   }, []);
-
   return { playSound };
 };
 
-// MoodButton component
-interface MoodButtonProps {
-  mood: string;
-  isActive: boolean;
-  onClick: () => void;
-}
-
 const MoodButton: React.FC<MoodButtonProps> = ({ mood, isActive, onClick }) => {
   const { imgSrc, alt } = MOOD_ASSETS[mood];
-
   return (
     <button
       className={`mood-btn ${isActive ? "active" : ""}`}
@@ -167,15 +185,9 @@ const MoodButton: React.FC<MoodButtonProps> = ({ mood, isActive, onClick }) => {
   );
 };
 
-// MoodStatItem component
-interface MoodStatItemProps {
-  name: string;
-  value: number;
-}
-
 const MoodStatItem: React.FC<MoodStatItemProps> = ({ name, value }) => {
   const moodKey = name.toLowerCase();
-  const { imgSrc, alt } = MOOD_ASSETS[moodKey] || MOOD_ASSETS.neutral;
+  const { imgSrc, alt } = MOOD_ASSETS[moodKey as MoodKey] || MOOD_ASSETS.neutral;
 
   return (
     <div className="mood-stat-item">
@@ -185,18 +197,8 @@ const MoodStatItem: React.FC<MoodStatItemProps> = ({ name, value }) => {
   );
 };
 
-// MoodPieChart component
-interface MoodPieChartProps {
-  tasks: PieChartData[];
-  totalTasks: number;
-  labelText: string;
-}
-
-const MoodPieChart: React.FC<MoodPieChartProps> = ({
-  tasks,
-  totalTasks,
-  labelText,
-}) => {
+// Fixed MoodPieChart component with proper typing
+const MoodPieChart: React.FC<MoodPieChartProps> = ({ tasks, totalTasks, labelText }) => {
   return (
     <PieChart width={250} height={250}>
       <Pie
@@ -214,11 +216,41 @@ const MoodPieChart: React.FC<MoodPieChartProps> = ({
             key={`cell-${index}`}
             fill={
               entry.color ||
-              MOOD_ASSETS[entry.name.toLowerCase()]?.color ||
+              MOOD_ASSETS[entry.name.toLowerCase() as MoodKey]?.color ||
               "#ccc"
             }
           />
         ))}
+        <Label
+          position="center"
+          content={({ viewBox }) => {
+            if (!viewBox) return null;
+            const { cx, cy } = viewBox as any;
+            return (
+              <g>
+                <text
+                  x={cx}
+                  y={cy}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize="24"
+                  fontWeight="bold"
+                >
+                  {totalTasks}
+                </text>
+                <text
+                  x={cx}
+                  y={cy + 20}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize="16"
+                >
+                  {labelText}
+                </text>
+              </g>
+            );
+          }}
+        />
       </Pie>
       <Tooltip />
     </PieChart>
@@ -226,10 +258,10 @@ const MoodPieChart: React.FC<MoodPieChartProps> = ({
 };
 
 const Home: React.FC = () => {
-  const { isAuthenticated, actor, logout } = useAuth();
+  const { isAuthenticated, actor, logout } = useAuth() as AuthContext;
   const [displayNickname, setDisplayNickname] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<Date | null>(null);
+  const [selected, setSelected] = useState<Date | undefined>(undefined);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
@@ -237,7 +269,7 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   const { playSound } = useAudio();
 
-  const getNickname = async () => {
+  const getNickname = async (): Promise<void> => {
     if (!actor) return;
     try {
       const result = await actor.getNickname();
@@ -253,26 +285,27 @@ const Home: React.FC = () => {
     }
   };
 
-const fetchJournals = async (): Promise<void> => {
-  if (!actor) return;
-  try {
-    const result: Journal[] = await actor.findAllJournals([], []);
-    const formattedEntries: JournalEntry[] = result.map((journal) => ({
-      id: journal.id.toString(),
-      title: journal.title,
-      content: journal.content,
-      mood: journal.mood && journal.mood.length > 0 ? journal.mood[0] : "neutral",
-      date: new Date(Number(journal.createdAt) / 1_000_000).toLocaleDateString(), // Convert nanoseconds to milliseconds
-      dateObj: new Date(Number(journal.createdAt) / 1_000_000), // Convert nanoseconds to milliseconds
-    }));
-    setJournalEntries(formattedEntries);
-  } catch (error: unknown) {
-    setError("Failed to fetch journals.");
-    console.error("Error fetching journals:", error);
-  }
-};
+  const fetchJournals = async (): Promise<void> => {
+    if (!actor) return;
+    try {
+      const result: Journal[] = await actor.findAllJournals([], []);
+      const formattedEntries: JournalEntry[] = result.map((journal) => ({
+        id: journal.id.toString(),
+        title: journal.title,
+        content: journal.content,
+        // Make sure to provide a default mood if mood array is empty or undefined
+        mood: journal.mood && journal.mood.length > 0 ? journal.mood[0] : "neutral",
+        date: new Date(Number(journal.createdAt) / 1_000_000).toLocaleDateString(), // Convert nanoseconds to milliseconds
+        dateObj: new Date(Number(journal.createdAt) / 1_000_000), // Convert nanoseconds to milliseconds
+      }));
+      setJournalEntries(formattedEntries);
+    } catch (error: unknown) {
+      setError("Failed to fetch journals.");
+      console.error("Error fetching journals:", error);
+    }
+  };
 
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     try {
       await logout();
       navigate("/");
@@ -282,13 +315,15 @@ const fetchJournals = async (): Promise<void> => {
     }
   };
 
-  const extractErrorMessage = (err: any): string => {
-    if ("InvalidInput" in err) {
-      return err.InvalidInput;
-    } else if ("NotFound" in err) {
-      return err.NotFound;
-    } else if ("Unauthorized" in err) {
-      return "Unauthorized access";
+  const extractErrorMessage = (err: unknown): string => {
+    if (err && typeof err === 'object') {
+      if ('InvalidInput' in err) {
+        return (err as { InvalidInput: string }).InvalidInput;
+      } else if ('NotFound' in err) {
+        return (err as { NotFound: string }).NotFound;
+      } else if ('Unauthorized' in err) {
+        return "Unauthorized access";
+      }
     }
     return "Unknown error occurred";
   };
@@ -330,21 +365,22 @@ const fetchJournals = async (): Promise<void> => {
   }, [journalEntries]);
 
   const renderDayContent = useCallback(
-    (day: Date): React.ReactNode => {
-      const dateKey = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
+    ({ date }: DayContentProps): React.ReactNode => {
+      const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
       const moodsSet = dateToMoodMap.get(dateKey);
       if (moodsSet) {
         return <div>{Array.from(moodsSet).join(", ")}</div>;
       }
-      return day.getDate();
+      return date.getDate();
     },
     [dateToMoodMap]
   );
 
   const clearDateSelection = useCallback(() => {
-    setSelected(null);
+    setSelected(undefined);
   }, []);
 
+  // Fixed calculation of mood counts
   const moodCounts = useMemo<MoodCount>(() => {
     const counts: MoodCount = {
       happy: 0,
@@ -356,28 +392,33 @@ const fetchJournals = async (): Promise<void> => {
     };
 
     journalEntries.forEach((entry) => {
-      if (entry.mood && counts[entry.mood as keyof MoodCount] !== undefined) {
-        counts[entry.mood as keyof MoodCount]++;
+      if (entry.mood) {
+        const moodKey = entry.mood.toLowerCase() as keyof MoodCount;
+        if (counts[moodKey] !== undefined) {
+          counts[moodKey]++;
+        }
       }
     });
 
     return counts;
   }, [journalEntries]);
 
+  // Create pie chart data with proper colors
   const tasks = useMemo<PieChartData[]>(() => {
     return [
-      { name: "Happy", value: moodCounts.happy },
-      { name: "Exhausted", value: moodCounts.exhausted },
-      { name: "Angry", value: moodCounts.angry },
-      { name: "Sad", value: moodCounts.sad },
-      { name: "Neutral", value: moodCounts.neutral },
-      { name: "Anxious", value: moodCounts.anxious },
+      { name: "Happy", value: moodCounts.happy, color: MOOD_ASSETS.happy.color },
+      { name: "Sad", value: moodCounts.sad, color: MOOD_ASSETS.sad.color },
+      { name: "Angry", value: moodCounts.angry, color: MOOD_ASSETS.angry.color },
+      { name: "Anxious", value: moodCounts.anxious, color: MOOD_ASSETS.anxious.color },
+      { name: "Exhausted", value: moodCounts.exhausted, color: MOOD_ASSETS.exhausted.color },
+      { name: "Neutral", value: moodCounts.neutral, color: MOOD_ASSETS.neutral.color },
     ];
   }, [moodCounts]);
 
+  // Calculate total number of journal entries correctly
   const totalTasks = useMemo(() => {
-    return tasks.reduce((sum, task) => sum + task.value, 0);
-  }, [tasks]);
+    return Object.values(moodCounts).reduce((sum, count) => sum + count, 0);
+  }, [moodCounts]);
 
   const dominantMood = useMemo(() => {
     return tasks.reduce(
@@ -414,9 +455,9 @@ const fetchJournals = async (): Promise<void> => {
 
       const matchesDate = selected
         ? entry.dateObj instanceof Date &&
-          entry.dateObj.getDate() === selected.getDate() &&
-          entry.dateObj.getMonth() === selected.getMonth() &&
-          entry.dateObj.getFullYear() === selected.getFullYear()
+        entry.dateObj.getDate() === selected.getDate() &&
+        entry.dateObj.getMonth() === selected.getMonth() &&
+        entry.dateObj.getFullYear() === selected.getFullYear()
         : true;
 
       const matchesMood = selectedMood ? entry.mood === selectedMood : true;
@@ -425,7 +466,7 @@ const fetchJournals = async (): Promise<void> => {
   }, [journalEntries, searchQuery, selected, selectedMood]);
 
   const clearAllFilters = useCallback(() => {
-    setSelected(null);
+    setSelected(undefined);
     setSelectedMood(null);
     setSearchQuery("");
   }, []);
@@ -435,23 +476,23 @@ const fetchJournals = async (): Promise<void> => {
   }, [navigate]);
 
   const handleEditJournal = useCallback(
-  (id: string) => {
-    const journalToEdit = journalEntries.find((entry) => entry.id === id);
-    if (journalToEdit) {
-      console.log("Navigating to edit journal with data:", journalToEdit); // Tambahkan log untuk debugging
-      navigate("/add-journal", { state: { journalToEdit } });
-    } else {
-      console.error("Journal with id", id, "not found");
-      Swal.fire({
-        title: "Error",
-        text: "Journal not found",
-        icon: "error",
-        confirmButtonColor: "#92A75C",
-      });
-    }
-  },
-  [journalEntries, navigate]
-);
+    (id: string) => {
+      const journalToEdit = journalEntries.find((entry) => entry.id === id);
+      if (journalToEdit) {
+        console.log("Navigating to edit journal with data:", journalToEdit);
+        navigate("/add-journal", { state: { journalToEdit } });
+      } else {
+        console.error("Journal with id", id, "not found");
+        Swal.fire({
+          title: "Error",
+          text: "Journal not found",
+          icon: "error",
+          confirmButtonColor: "#92A75C",
+        });
+      }
+    },
+    [journalEntries, navigate]
+  );
 
   const handleDeleteJournal = useCallback(
     async (id: string) => {
@@ -522,7 +563,42 @@ const fetchJournals = async (): Promise<void> => {
           <h5>
             <b>Filter by Calendar</b>
           </h5>
-          
+          <DayPicker
+            className="custom-calendar"
+            mode="single"
+            selected={selected}
+            onSelect={setSelected}
+            showOutsideDays
+            modifiersClassNames={{
+              selected: "my-selected",
+              today: "my-today",
+            }}
+            modifiers={{
+              hasEntries: (date: Date) => {
+                const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+                return dateToMoodMap.has(dateKey);
+              },
+            }}
+            components={{
+              DayContent: renderDayContent,
+            } as any}
+            footer={
+              selected ? (
+                <div>
+                  Selected: {selected.toLocaleDateString()}
+                  <button
+                    onClick={clearDateSelection}
+                    className="date-clear-btn"
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : (
+                "Pick a day."
+              )
+            }
+          />
+
         </div>
 
         <div className="filter-section">
@@ -577,6 +653,7 @@ const fetchJournals = async (): Promise<void> => {
           <div className="row">
             <div className="col-lg-4 col-md-12">
               <div className="dominant-mood-center">
+                {/* Make sure MoodPieChart is rendered */}
                 <MoodPieChart
                   tasks={tasks}
                   totalTasks={totalTasks}
@@ -670,7 +747,7 @@ const fetchJournals = async (): Promise<void> => {
                     </div>
                     <div className="mood-indicator">
                       <span className="mood-emoji">
-                        {moodEmojis[entry.mood]}
+                        {moodEmojis[entry.mood.toLowerCase()] || moodEmojis.neutral}
                       </span>
                     </div>
                   </div>

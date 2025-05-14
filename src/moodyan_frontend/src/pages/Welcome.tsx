@@ -1,64 +1,15 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/use-auth";
 import { useNavigate } from "react-router-dom";
-import { Journal } from "declarations/moodyan_backend/moodyan_backend.did";
 import "../assets/styles/welcome.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function Test() {
   const { isAuthenticated, principal, actor, login, logout } = useAuth();
-  
-
-  const whoami = async () => {
-    if (!actor) return;
-    const result = await actor.whoami();
-    console.log(result);
-  };
-
-  const [title, setTitle] = useState<string>("");
-  const [content, setContent] = useState<string>("");
-  const [journals, setJournals] = useState<Journal[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
   const [nickname, setNickname] = useState<string>("");
-  const [displayNickname, setDisplayNickname] = useState<string>("");
   const [showModal, setShowModal] = useState<boolean>(false);
   const navigate = useNavigate();
-
-  const fetchJournals = async () => {
-    if (!actor) return;
-    setLoading(true);
-
-    try {
-      const result = await actor.findAllJournals([], []);
-      setJournals(result);
-    } catch (error) {
-      setError("Failed to fetch journals.");
-      console.error(error);
-    }
-
-    setLoading(false);
-  };
-
-  const handleCreateJournal = async () => {
-    if (!actor) return;
-    setLoading(true);
-
-    try {
-      const result = await actor.createJournal(title, content);
-      if ("ok" in result) {
-        setJournals([...journals, result.ok]);
-      } else {
-        setError("Failed to create journal: " + extractErrorMessage(result.err));
-        console.error(result.err);
-      }
-    } catch (error) {
-      setError("Failed to create journal.");
-      console.error(error);
-    }
-
-    setLoading(false);
-  };
 
   const handleSaveNickname = async () => {
     if (!actor) return;
@@ -71,9 +22,8 @@ export default function Test() {
       const result = await actor.saveNickname(nickname);
       if ("ok" in result) {
         setShowModal(false);
-        setDisplayNickname(nickname); 
         setNickname("");
-        navigate("/home")
+        navigate("/home");
       } else {
         setError(extractErrorMessage(result.err));
         console.error(result.err);
@@ -84,23 +34,24 @@ export default function Test() {
     }
   };
 
-  const getNickname = async () => {
+  const checkNickname = async () => {
     if (!actor) return;
     try {
-      const result = await actor.getNickname(); // No parameter needed
-      if ("ok" in result) {
-        setDisplayNickname(result.ok); // Set the fetched nickname
+      const result = await actor.getNickname();
+      if ("ok" in result && result.ok) {
+        // If nickname exists, navigate to home
+        navigate("/home");
       } else {
-        setError(extractErrorMessage(result.err));
-        console.error(result.err);
+        // If no nickname, show modal
+        setShowModal(true);
       }
     } catch (error) {
       setError("Failed to fetch nickname.");
       console.error(error);
+      setShowModal(true); // Show modal on error to allow retry
     }
   };
 
-  // Helper function to extract error message from Types.Error variant
   const extractErrorMessage = (err: any): string => {
     if ("InvalidInput" in err) {
       return err.InvalidInput;
@@ -113,12 +64,10 @@ export default function Test() {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      setShowModal(true);
-      fetchJournals();
-      getNickname(); // Fetch nickname when authenticated
+    if (isAuthenticated && actor) {
+      checkNickname();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, actor]);
 
   return (
     <div className="d-flex align-items-center justify-content-center min-vh-100 login">
@@ -184,9 +133,6 @@ export default function Test() {
             </div>
           </div>
         </div>
-      )}
-      {isAuthenticated && displayNickname && (
-        <p>Welcome, <strong>{displayNickname}</strong>!</p>
       )}
     </div>
   );
