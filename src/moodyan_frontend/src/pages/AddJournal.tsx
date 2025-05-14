@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Swal from "sweetalert2";
 import CardHappy from "../assets/images/CardHappy.png";
 import CardSad from "../assets/images/CardSad.png";
@@ -9,48 +9,147 @@ import CardAnxious from "../assets/images/CardAnxious.png";
 import CardExhausted from "../assets/images/CardExhausted.png";
 import CardNeutral from "../assets/images/CardNeutral.png";
 import "../assets/styles/add-journal.css";
+import { useAuth } from "../hooks/use-auth";
+
+type Mood = "happy" | "sad" | "angry" | "anxious" | "exhausted" | "neutral" | null;
+
+interface JournalToEdit {
+  id: string;
+  title: string;
+  content: string;
+  mood: string;
+  date: string;
+  dateObj: Date;
+}
+
+interface LocationState {
+  journalToEdit?: JournalToEdit;
+}
 
 export default function AddJournal() {
-  const [journalTitle, setJournalTitle] = useState("Untitled Journal");
-  const [journalContent, setJournalContent] = useState("");
-  const [lastSaved, setLastSaved] = useState(null);
-  const [isSaved, setIsSaved] = useState(false);
-  const [aiReflection, setAiReflection] = useState(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [mood, setMood] = useState(null);
-  const [isEditing, setIsEditing] = useState(true);
-  const [journalId, setJournalId] = useState(null);
-
+  const { isAuthenticated, actor } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { journalToEdit } = (location.state as LocationState) || {};
 
-  // Load journal data when component mounts
+  const [journalId, setJournalId] = useState<number | null>(null);
+  const [journalTitle, setJournalTitle] = useState<string>("Untitled Journal");
+  const [journalContent, setJournalContent] = useState<string>("");
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaved, setIsSaved] = useState<boolean>(false);
+  const [aiReflection, setAiReflection] = useState<string | null | undefined>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
+  const [mood, setMood] = useState<Mood>(null);
+  const [isEditing, setIsEditing] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Inisialisasi data jurnal saat komponen dimuat
   useEffect(() => {
-    const journalToEdit = localStorage.getItem("journalToEdit");
-
     if (journalToEdit) {
-      const parsedJournal = JSON.parse(journalToEdit);
-
-      // Populate form with existing journal data
-      setJournalId(parsedJournal.id);
-      setJournalTitle(parsedJournal.title);
-      setJournalContent(parsedJournal.content);
-      setMood(parsedJournal.mood);
-      setAiReflection(parsedJournal.reflection);
+      console.log("Received journalToEdit:", journalToEdit); // Log untuk debugging
+      setJournalId(Number(journalToEdit.id));
+      setJournalTitle(journalToEdit.title || "Untitled Journal");
+      setJournalContent(journalToEdit.content || "");
+      setMood((journalToEdit.mood || "neutral") as Mood);
+      // Pastikan dateObj valid, gunakan date sebagai fallback jika perlu
+      setLastSaved(journalToEdit.dateObj ? new Date(journalToEdit.dateObj) : journalToEdit.date ? new Date(journalToEdit.date) : new Date());
       setIsSaved(true);
+      setIsEditing(true); // Pastikan mode edit aktif
+    } else {
+      // Jika baru membuat jurnal, set tanggal saat ini
+      setLastSaved(new Date());
+    }
+  }, [journalToEdit]);
 
-      // If there's a date, convert it to a Date object
-      if (parsedJournal.dateObj) {
-        setLastSaved(new Date(parsedJournal.dateObj));
+  const handleSaveJournal = async () => {
+    if (!actor) return;
+    setIsAnalyzing(true);
+    setError(null);
+
+    try {
+      let result;
+      if (journalId) {
+        result = await actor.updateJournalById(
+          BigInt(journalId),
+          journalTitle,
+          journalContent
+        );
+      } else {
+        result = await actor.createJournal(journalTitle, journalContent);
       }
 
-      // Clear the localStorage item after loading
-      localStorage.removeItem("journalToEdit");
-    }
-  }, []);
+      if ("ok" in result) {
+        const savedJournal = result.ok;
+        console.log("Saved Journal:", savedJournal); // Debug log
+        setJournalId(Number(savedJournal.id));
+        setLastSaved(new Date(Number(savedJournal.updatedAt) / 1_000_000));
+        setIsSaved(true);
+        setIsEditing(false);
 
-  const formatDate = (date) => {
+        // Handle mood
+        const moodValue: Mood = (savedJournal.mood && savedJournal.mood[0]) as Mood || "neutral";
+        setMood(moodValue);
+
+        // Handle reflection
+        const reflectionValue: string | null | undefined = Array.isArray(savedJournal.reflection) && savedJournal.reflection.length > 0 ? savedJournal.reflection[0] : null;
+        setAiReflection(reflectionValue);
+
+        Swal.fire({
+          title: "Success!",
+          text: "Journal saved successfully",
+          icon: "success",
+          confirmButtonColor: "#92A75C",
+        });
+      } else {
+        setError("Failed to save journal.");
+        console.error(result.err);
+      }
+    } catch (error) {
+      setError("Failed to save journal.");
+      console.error(error);
+    }
+
+    setIsAnalyzing(false);
+  };
+
+  const handleDeleteJournal = async () => {
+    if (!actor || !journalId) return;
+
+    const result = await Swal.fire({
+      title: "Are you sure?",
+      text: "This journal will be deleted permanently.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, delete it!",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        const deleteResult = await actor.deleteJournalById(BigInt(journalId));
+        if ("ok" in deleteResult) {
+          Swal.fire({
+            title: "Deleted!",
+            text: "Your journal has been deleted.",
+            icon: "success",
+            confirmButtonColor: "#92A75C",
+          });
+          navigate("/home");
+        } else {
+          setError("Failed to delete journal.");
+          console.error(deleteResult.err);
+        }
+      } catch (error) {
+        setError("Failed to delete journal.");
+        console.error(error);
+      }
+    }
+  };
+
+  const formatDate = (date: Date | null): string => {
     if (!date) return "";
-    return date.toLocaleString("en-US", {
+    return date.toLocaleString("id-ID", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,
@@ -60,222 +159,8 @@ export default function AddJournal() {
     });
   };
 
-  // Function to analyze mood based on journal content
-  const analyzeJournalMood = (content) => {
-    const contentLower = content.toLowerCase();
-
-    // Simple sentiment analysis (could be replaced with more advanced AI)
-    const happyWords = [
-      "happy",
-      "joy",
-      "excited",
-      "wonderful",
-      "great",
-      "amazing",
-      "love",
-      "proud",
-    ];
-    const sadWords = [
-      "sad",
-      "unhappy",
-      "depressed",
-      "miserable",
-      "cry",
-      "tears",
-      "heartbroken",
-    ];
-    const angryWords = [
-      "angry",
-      "mad",
-      "furious",
-      "rage",
-      "upset",
-      "frustrated",
-      "annoyed",
-    ];
-    const anxiousWords = [
-      "anxious",
-      "worried",
-      "nervous",
-      "stress",
-      "fear",
-      "dread",
-      "panic",
-    ];
-    const exhaustedWords = [
-      "tired",
-      "exhausted",
-      "drained",
-      "fatigue",
-      "weary",
-      "sleepy",
-    ];
-
-    // Count occurrences of each mood type
-    let happyCount = happyWords.filter((word) =>
-      contentLower.includes(word)
-    ).length;
-    let sadCount = sadWords.filter((word) =>
-      contentLower.includes(word)
-    ).length;
-    let angryCount = angryWords.filter((word) =>
-      contentLower.includes(word)
-    ).length;
-    let anxiousCount = anxiousWords.filter((word) =>
-      contentLower.includes(word)
-    ).length;
-    let exhaustedCount = exhaustedWords.filter((word) =>
-      contentLower.includes(word)
-    ).length;
-
-    // Determine dominant mood
-    const moodCounts = [
-      { mood: "happy", count: happyCount },
-      { mood: "sad", count: sadCount },
-      { mood: "angry", count: angryCount },
-      { mood: "anxious", count: anxiousCount },
-      { mood: "exhausted", count: exhaustedCount },
-    ];
-
-    // Sort by count (highest first)
-    moodCounts.sort((a, b) => b.count - a.count);
-
-    // Return the most frequent mood, or Neutral if no mood is detected
-    return moodCounts[0].count > 0 ? moodCounts[0].mood : "neutral";
-  };
-
-  // Generate reflection based on mood
-  const generateReflection = (detectedMood) => {
-    const reflections = {
-      happy:
-        "Your journal radiates positivity and joy! I can feel your happiness through your words. This is a wonderful moment to cherish and remember during challenging times. Keep embracing these positive feelings!",
-      sad: "I sense some sadness in your writing. Remember that it's okay to feel this way sometimes. These emotions are valid and important. Consider what might bring you comfort right now, and be gentle with yourself.",
-      angry:
-        "I notice feelings of frustration and anger in your journal. These are normal emotions that deserve acknowledgment. Try to identify what triggered these feelings and consider constructive ways to address the situation.",
-      anxious:
-        "Your journal suggests you might be feeling anxious or worried. Remember to take deep breaths and focus on what's within your control. Consider writing down specific concerns and potential solutions.",
-      exhausted:
-        "I can tell you're feeling tired and drained. Your body and mind might be signaling that you need rest. Consider taking some time for self-care and recovery. Small breaks can make a big difference.",
-      neutral:
-        "Your journal has a balanced tone today. This could be a good time for reflection and planning. Consider what areas of your life feel satisfying and which ones might need more attention.",
-    };
-
-    return reflections[detectedMood];
-  };
-
-  const handleSaveJournal = () => {
-    setIsAnalyzing(true);
-
-    // Simulate AI analysis with timeout
-    setTimeout(() => {
-      const detectedMood = analyzeJournalMood(journalContent);
-      setMood(detectedMood);
-      setAiReflection(generateReflection(detectedMood));
-
-      const currentDate = new Date();
-      setLastSaved(currentDate);
-
-      // Get existing entries from localStorage or initialize empty array
-      const existingEntries = JSON.parse(
-        localStorage.getItem("journalEntries") || "[]"
-      );
-
-      let updatedEntries;
-
-      if (journalId) {
-        // If we have a journal ID, we're editing an existing entry
-        updatedEntries = existingEntries.map((entry) => {
-          if (entry.id === journalId) {
-            // Update the existing entry
-            return {
-              ...entry,
-              title: journalTitle,
-              date: formatDate(currentDate),
-              dateObj: currentDate,
-              content: journalContent,
-              mood: detectedMood,
-              reflection: generateReflection(detectedMood),
-            };
-          }
-          return entry;
-        });
-      } else {
-        // Create a new journal entry
-        const newJournal = {
-          id: Date.now(), // Generate unique ID based on timestamp
-          title: journalTitle,
-          date: formatDate(currentDate),
-          dateObj: currentDate,
-          content: journalContent,
-          mood: detectedMood,
-          reflection: generateReflection(detectedMood),
-        };
-
-        // Add new entry to the beginning of the array
-        updatedEntries = [newJournal, ...existingEntries];
-      }
-
-      // Save updated array back to localStorage
-      localStorage.setItem("journalEntries", JSON.stringify(updatedEntries));
-
-      setIsAnalyzing(false);
-      setIsSaved(true);
-      setIsEditing(false);
-    }, 1500);
-  };
-
   const handleEditJournal = () => {
     setIsEditing(true);
-  };
-
-  const handleDeleteJournal = () => {
-    Swal.fire({
-      title: "Are you sure?",
-      text: "You want to delete this journal?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#92A75C",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        // If we have a journal ID, remove it from localStorage
-        if (journalId) {
-          const existingEntries = JSON.parse(
-            localStorage.getItem("journalEntries") || "[]"
-          );
-          const updatedEntries = existingEntries.filter(
-            (entry) => entry.id !== journalId
-          );
-          localStorage.setItem(
-            "journalEntries",
-            JSON.stringify(updatedEntries)
-          );
-        }
-
-        // Show success message
-        Swal.fire({
-          title: "Deleted!",
-          text: "Your journal has been deleted.",
-          icon: "success",
-          confirmButtonColor: "#92A75C",
-          timer: 1500,
-        });
-
-        // Reset the form
-        setJournalTitle("Untitled Journal");
-        setJournalContent("");
-        setAiReflection(null);
-        setMood(null);
-        setIsSaved(false);
-        setIsEditing(true);
-        setJournalId(null);
-
-        // Navigate back to home
-        navigate("/home");
-      }
-    });
   };
 
   const handleCancel = () => {
@@ -305,8 +190,8 @@ export default function AddJournal() {
     navigate("/home");
   };
 
-  const getMoodCard = () => {
-    const cards = {
+  const getMoodCard = (): string | null => {
+    const cards: Record<NonNullable<Mood>, string> = {
       happy: CardHappy,
       sad: CardSad,
       angry: CardAngry,
@@ -315,8 +200,16 @@ export default function AddJournal() {
       neutral: CardNeutral,
     };
 
-    return cards[mood] || null;
+    return mood ? cards[mood] : null;
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container-fluid p-0">
+        <p>Please log in to access the journal.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container-fluid p-0 journal-container">
@@ -392,7 +285,7 @@ export default function AddJournal() {
                   placeholder="Journal Title"
                 />
                 <textarea
-                  className="form-control shadow-sm journal-content"
+                  className="form-control shadow-sm journal-content2"
                   value={journalContent}
                   onChange={(e) => setJournalContent(e.target.value)}
                   placeholder="Start writing here..."
@@ -404,6 +297,8 @@ export default function AddJournal() {
                 <div>{journalContent}</div>
               </div>
             )}
+
+            {error && <p style={{ color: "red" }}>{error}</p>}
           </div>
         </div>
 
@@ -421,11 +316,10 @@ export default function AddJournal() {
               </div>
             ) : aiReflection ? (
               <div className="text-center">
-                {/* Mood Card Display */}
                 {mood && (
                   <div className="mb-4">
                     <img
-                      src={getMoodCard()}
+                      src={getMoodCard() ?? ""}
                       alt={`${mood} Mood Card`}
                       className="img-fluid rounded shadow-sm mood-card"
                     />
@@ -435,7 +329,6 @@ export default function AddJournal() {
                   </div>
                 )}
 
-                {/* AI Reflection */}
                 <div className="reflection-container">
                   <h5 className="reflection-title">Reflection</h5>
                   <p>{aiReflection}</p>

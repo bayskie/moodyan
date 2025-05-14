@@ -9,6 +9,7 @@ import Option "mo:base/Option";
 import Iter "mo:base/Iter";
 import Array "mo:base/Array";
 import Int "mo:base/Int";
+import Debug "mo:base/Debug";
 import Types "types";
 import Utils "utils";
 
@@ -18,7 +19,36 @@ actor {
   type UserJournal = HashMap.HashMap<Nat, Types.Journal>;
   private var userJournals = HashMap.HashMap<Principal, UserJournal>(10, Principal.equal, Principal.hash);
 
-  // Testing
+  private var userProfiles = HashMap.HashMap<Principal, Types.UserProfile>(10, Principal.equal, Principal.hash);
+
+  public shared ({ caller }) func saveNickname(nickname : Text) : async Result.Result<(), Types.Error> {
+    if (Text.size(nickname) == 0) {
+      return #err(#InvalidInput("Nickname cannot be empty"));
+    };
+    if (Text.size(nickname) > 32) {
+      return #err(#InvalidInput("Nickname too long (max 32 characters)"));
+    };
+
+    let profile : Types.UserProfile = {
+      nickname = nickname;
+      createdAt = Time.now();
+    };
+    
+    userProfiles.put(caller, profile);
+    #ok(())
+  };
+
+  public query ({ caller }) func getNickname() : async Result.Result<Text, Types.Error> {
+    switch (userProfiles.get(caller)) {
+      case (?profile) {
+        #ok(profile.nickname)
+      };
+      case (null) {
+        #err(#NotFound("Nickname not set"))
+      };
+    }
+  };
+
   public query func helloWorld() : async Text {
     return "Hello world!";
   };
@@ -27,7 +57,7 @@ actor {
     return caller;
   };
 
-  public shared ({ caller }) func createJournal(title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
+   public shared ({ caller }) func createJournal(title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
     ensureUserJournalExists(caller);
 
     let validationResult = Utils.validateJournal(title, content);
@@ -50,6 +80,7 @@ actor {
     };
 
     let analysisResult : ?Types.AnalysisResult = await Utils.analyzeJournal(content);
+    Debug.print("Analysis Result: " # debug_show(analysisResult));
 
     let journal = switch (analysisResult) {
       case (?analysisResultValue) {
@@ -71,6 +102,48 @@ actor {
       },
     );
   };
+
+  // Similar changes for updateJournalById
+  // public shared ({ caller }) func updateJournalById(id : Nat, title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
+  //   let validationResult = Utils.validateJournal(title, content);
+  //   switch (validationResult) {
+  //     case (#ok(_)) {};
+  //     case (#err(error)) return #err(error);
+  //   };
+
+  //   let isJournalExist = _findJournalById(caller, id);
+  //   switch (isJournalExist) {
+  //     case (#err(error)) return #err(error);
+  //     case (#ok(existingJournal)) {
+  //       let analysisResult : ?Types.AnalysisResult = await Utils.analyzeJournal(content);
+  //       Debug.print("Update Analysis Result: " # debug_show(analysisResult));
+  //       let updatedJournal : Types.Journal = {
+  //         id = existingJournal.id;
+  //         title = title;
+  //         content = content;
+  //         mood = switch (analysisResult) {
+  //           case (?result) ?result.mood;
+  //           case (null) ?"neutral";
+  //         };
+  //         reflection = switch (analysisResult) {
+  //           case (?result) ?result.reflection;
+  //           case (null) ?"Unable to analyze journal.";
+  //         };
+  //         createdAt = existingJournal.createdAt;
+  //         updatedAt = Time.now();
+  //       };
+
+  //       return withUserJournal<Types.Journal>(
+  //         caller,
+  //         #err(#NotFound("User journal was not found")),
+  //         func(userJournal) {
+  //           userJournal.put(id, updatedJournal);
+  //           return #ok(updatedJournal);
+  //         },
+  //       );
+  //     };
+  //   };
+  // };
 
   public query ({ caller }) func findAllJournals(moodFilter : ?Text, dateFilter : ?Time.Time) : async [Types.Journal] {
     return withUserJournalQuery<[Types.Journal]>(
@@ -130,15 +203,22 @@ actor {
     switch (isJournalExist) {
       case (#err(error)) return #err(error);
       case (#ok(existingJournal)) {
-        let updatedJournal : Types.Journal = {
-          id = existingJournal.id;
-          title = title;
-          content = content;
-          mood = existingJournal.mood;
-          reflection = existingJournal.reflection;
-          createdAt = existingJournal.createdAt;
-          updatedAt = Time.now();
-        };
+        let analysisResult : ?Types.AnalysisResult = await Utils.analyzeJournal(content);
+let updatedJournal : Types.Journal = {
+  id = existingJournal.id;
+  title = title;
+  content = content;
+  mood = switch (analysisResult) {
+    case (?result) ?result.mood;
+    case (null) ?"neutral";
+  };
+  reflection = switch (analysisResult) {
+    case (?result) ?result.reflection;
+    case (null) ?"Unable to analyze journal.";
+  };
+  createdAt = existingJournal.createdAt;
+  updatedAt = Time.now();
+};
 
         return withUserJournal<Types.Journal>(
           caller,

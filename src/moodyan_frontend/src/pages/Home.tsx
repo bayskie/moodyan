@@ -1,20 +1,12 @@
-import React, {
-  useState,
-  useCallback,
-  useMemo,
-  useRef,
-  useEffect,
-} from "react";
-import { AuthClient } from "@dfinity/auth-client";
-import { PieChart, Pie, Cell, Tooltip, Label } from "recharts";
+import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { PieChart, Pie, Cell, Tooltip } from "recharts";
 import { useNavigate } from "react-router-dom";
 import { FaSearch, FaPen, FaTrashAlt } from "react-icons/fa";
-import { DayPicker } from "react-day-picker";
 import Swal from "sweetalert2";
-import "react-day-picker/style.css";
 import "../assets/styles/home.css";
+import { useAuth } from "../hooks/use-auth";
 
-// Import all mood images directly for better path management
+// Import mood assets
 import HappyImg from "../assets/images/happy.png";
 import SadImg from "../assets/images/sad.png";
 import AngryImg from "../assets/images/angry.png";
@@ -22,9 +14,65 @@ import AnxiousImg from "../assets/images/anxious.png";
 import ExhaustedImg from "../assets/images/exhausted.png";
 import NeutralImg from "../assets/images/neutral.png";
 import HappySound from "../assets/music/happy.mp3";
-import AngrySound from "../assets/music/angry.opus";
+import SadSound from "../assets/music/sad.mp3";
+import AngrySound from "../assets/music/angry.mp3";
+import AnxiousSound from "../assets/music/anxious.mp3";
+import ExhaustedSound from "../assets/music/exhausted.mp3";
 
-const MOOD_ASSETS = {
+// Interfaces
+interface Journal {
+  id: BigInt;
+  title: string;
+  content: string;
+  mood: string[];
+  createdAt: BigInt;
+}
+
+interface Actor {
+  findAllJournals: (arg1: any[], arg2: any[]) => Promise<Journal[]>;
+  getNickname: () => Promise<{ ok: string } | { err: any }>;
+  deleteJournalById: (id: BigInt) => Promise<{ ok: any } | { err: any }>;
+}
+
+interface AuthContext {
+  isAuthenticated: boolean;
+  actor: Actor | null;
+  logout: () => Promise<void>;
+}
+
+interface MoodAsset {
+  imgSrc: string;
+  alt: string;
+  color: string;
+  soundSrc: string | null;
+}
+
+interface JournalEntry {
+  id: string;
+  title: string;
+  content: string;
+  mood: string;
+  date: string;
+  dateObj: Date;
+}
+
+interface MoodCount {
+  happy: number;
+  sad: number;
+  angry: number;
+  anxious: number;
+  exhausted: number;
+  neutral: number;
+}
+
+interface PieChartData {
+  name: string;
+  value: number;
+  color?: string;
+}
+
+// Mood assets configuration
+const MOOD_ASSETS: Record<string, MoodAsset> = {
   happy: {
     imgSrc: HappyImg,
     alt: "Happy",
@@ -35,7 +83,7 @@ const MOOD_ASSETS = {
     imgSrc: SadImg,
     alt: "Sad",
     color: "#52CBEC",
-    soundSrc: null,
+    soundSrc: SadSound,
   },
   angry: {
     imgSrc: AngryImg,
@@ -47,13 +95,13 @@ const MOOD_ASSETS = {
     imgSrc: AnxiousImg,
     alt: "Anxious",
     color: "#9C72D9",
-    soundSrc: null,
+    soundSrc: AnxiousSound,
   },
   exhausted: {
     imgSrc: ExhaustedImg,
     alt: "Exhausted",
     color: "#92A75C",
-    soundSrc: null,
+    soundSrc: ExhaustedSound,
   },
   neutral: {
     imgSrc: NeutralImg,
@@ -65,59 +113,67 @@ const MOOD_ASSETS = {
 
 // Custom hook for audio management
 const useAudio = () => {
-  const audioRefs = useRef({});
+  const audioRefs = useRef<Record<string, HTMLAudioElement>>({});
 
   useEffect(() => {
-    // Load audio for moods that have sound
     Object.entries(MOOD_ASSETS).forEach(([mood, { soundSrc }]) => {
       if (soundSrc) {
         audioRefs.current[mood] = new Audio(soundSrc);
       }
     });
 
-    // Cleanup function
     return () => {
       Object.values(audioRefs.current).forEach((audio) => {
-        if (audio) {
-          audio.pause();
-          audio.currentTime = 0;
-        }
+        audio.pause();
+        audio.currentTime = 0;
       });
     };
   }, []);
 
-  const playSound = (mood) => {
+  const playSound = useCallback((mood: string) => {
     const audio = audioRefs.current[mood];
     if (audio) {
       audio.currentTime = 0;
-      audio.play().catch((error) => {
+      audio.play().catch((error: Error) => {
         console.error("Error playing sound:", error);
         alert(
           "Sound can only be played after user interaction. Click 'OK' then try again."
         );
       });
     }
-  };
+  }, []);
 
   return { playSound };
 };
 
-// Reusable MoodButton component
-const MoodButton = ({ mood, isActive, onClick }) => {
+// MoodButton component
+interface MoodButtonProps {
+  mood: string;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+const MoodButton: React.FC<MoodButtonProps> = ({ mood, isActive, onClick }) => {
   const { imgSrc, alt } = MOOD_ASSETS[mood];
 
   return (
     <button
       className={`mood-btn ${isActive ? "active" : ""}`}
       onClick={onClick}
+      type="button"
     >
       <img src={imgSrc} alt={alt} className="mood-filter" />
     </button>
   );
 };
 
-// Reusable MoodStatItem component
-const MoodStatItem = ({ name, value }) => {
+// MoodStatItem component
+interface MoodStatItemProps {
+  name: string;
+  value: number;
+}
+
+const MoodStatItem: React.FC<MoodStatItemProps> = ({ name, value }) => {
   const moodKey = name.toLowerCase();
   const { imgSrc, alt } = MOOD_ASSETS[moodKey] || MOOD_ASSETS.neutral;
 
@@ -129,8 +185,18 @@ const MoodStatItem = ({ name, value }) => {
   );
 };
 
-// Reusable PieChartComponent
-const MoodPieChart = ({ tasks, totalTasks, labelText }) => {
+// MoodPieChart component
+interface MoodPieChartProps {
+  tasks: PieChartData[];
+  totalTasks: number;
+  labelText: string;
+}
+
+const MoodPieChart: React.FC<MoodPieChartProps> = ({
+  tasks,
+  totalTasks,
+  labelText,
+}) => {
   return (
     <PieChart width={250} height={250}>
       <Pie
@@ -153,109 +219,109 @@ const MoodPieChart = ({ tasks, totalTasks, labelText }) => {
             }
           />
         ))}
-        <Label
-          position="center"
-          content={({ viewBox }) => {
-            const { cx, cy } = viewBox;
-            return (
-              <g>
-                <text
-                  x={cx}
-                  y={cy}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize="24"
-                  fontWeight="bold"
-                >
-                  {totalTasks}
-                </text>
-                <text
-                  x={cx}
-                  y={cy + 20}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  fontSize="16"
-                >
-                  {labelText}
-                </text>
-              </g>
-            );
-          }}
-        />
       </Pie>
       <Tooltip />
     </PieChart>
   );
 };
 
-// Handle logout
-const handleLogout = async () => {
-  const authClient = await AuthClient.create();
-  await authClient.logout();
-  localStorage.removeItem("nickname");
-  window.location.href = "/";
-};
-
-export default function Home() {
-  const [nickname, setNickname] = useState("");
-  const [selected, setSelected] = useState(null);
-  const [selectedMood, setSelectedMood] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [journalEntries, setJournalEntries] = useState([]);
-  const [sidebarActive, setSidebarActive] = useState(false);
+const Home: React.FC = () => {
+  const { isAuthenticated, actor, logout } = useAuth();
+  const [displayNickname, setDisplayNickname] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Date | null>(null);
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [sidebarActive, setSidebarActive] = useState<boolean>(false);
   const navigate = useNavigate();
   const { playSound } = useAudio();
 
-  // Toggle sidebar for mobile
-  const toggleSidebar = () => {
-    setSidebarActive(!sidebarActive);
+  const getNickname = async () => {
+    if (!actor) return;
+    try {
+      const result = await actor.getNickname();
+      if ("ok" in result) {
+        setDisplayNickname(result.ok);
+      } else {
+        setError(extractErrorMessage(result.err));
+        console.error(result.err);
+      }
+    } catch (error) {
+      setError("Failed to fetch nickname.");
+      console.error(error);
+    }
   };
 
-  // SAVE NICKNAME USER TO LOCALSTORAGE
-  useEffect(() => {
-    const storedNickname = localStorage.getItem("nickname");
-    if (storedNickname) {
-      setNickname(storedNickname);
+const fetchJournals = async (): Promise<void> => {
+  if (!actor) return;
+  try {
+    const result: Journal[] = await actor.findAllJournals([], []);
+    const formattedEntries: JournalEntry[] = result.map((journal) => ({
+      id: journal.id.toString(),
+      title: journal.title,
+      content: journal.content,
+      mood: journal.mood && journal.mood.length > 0 ? journal.mood[0] : "neutral",
+      date: new Date(Number(journal.createdAt) / 1_000_000).toLocaleDateString(), // Convert nanoseconds to milliseconds
+      dateObj: new Date(Number(journal.createdAt) / 1_000_000), // Convert nanoseconds to milliseconds
+    }));
+    setJournalEntries(formattedEntries);
+  } catch (error: unknown) {
+    setError("Failed to fetch journals.");
+    console.error("Error fetching journals:", error);
+  }
+};
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+      setError("Failed to logout.");
     }
+  };
 
-    // LOAD JOURNAL ENTRIES FROM LOCALSTORAGE
-    const loadJournalEntries = () => {
-      const storedEntries = localStorage.getItem("journalEntries");
-      if (storedEntries) {
-        const parsedEntries = JSON.parse(storedEntries);
+  const extractErrorMessage = (err: any): string => {
+    if ("InvalidInput" in err) {
+      return err.InvalidInput;
+    } else if ("NotFound" in err) {
+      return err.NotFound;
+    } else if ("Unauthorized" in err) {
+      return "Unauthorized access";
+    }
+    return "Unknown error occurred";
+  };
 
-        // Convert string dates back to Date objects
-        const entriesWithDateObj = parsedEntries.map((entry) => ({
-          ...entry,
-          dateObj: new Date(entry.dateObj),
-        }));
+  useEffect(() => {
+    if (isAuthenticated && actor) {
+      getNickname();
+      fetchJournals();
+    }
+  }, [isAuthenticated, actor]);
 
-        setJournalEntries(entriesWithDateObj);
-      }
-    };
-
-    loadJournalEntries();
+  const toggleSidebar = useCallback(() => {
+    setSidebarActive((prev) => !prev);
   }, []);
 
-  // HANDLE MOOD FILTER
-  const handleMoodFilter = (mood) => {
-    playSound(mood);
-    setSelectedMood((prev) => (prev === mood ? null : mood));
-  };
+  const handleMoodFilter = useCallback(
+    (mood: string) => {
+      playSound(mood);
+      setSelectedMood((prev) => (prev === mood ? null : mood));
+    },
+    [playSound]
+  );
 
-  // FILTER BY CALENDAR
   const dateToMoodMap = useMemo(() => {
-    const map = new Map();
+    const map = new Map<string, Set<string>>();
 
     journalEntries.forEach((entry) => {
       if (entry.dateObj instanceof Date) {
         const dateKey = `${entry.dateObj.getFullYear()}-${entry.dateObj.getMonth()}-${entry.dateObj.getDate()}`;
         if (!map.has(dateKey)) {
-          // Create a new Set for unique moods on this date
           map.set(dateKey, new Set([entry.mood]));
         } else {
-          // Add this mood to the existing Set for this date
-          map.get(dateKey).add(entry.mood);
+          map.get(dateKey)!.add(entry.mood);
         }
       }
     });
@@ -263,9 +329,8 @@ export default function Home() {
     return map;
   }, [journalEntries]);
 
-  // RENDER DAY CONTENT
   const renderDayContent = useCallback(
-    (day) => {
+    (day: Date): React.ReactNode => {
       const dateKey = `${day.getFullYear()}-${day.getMonth()}-${day.getDate()}`;
       const moodsSet = dateToMoodMap.get(dateKey);
       if (moodsSet) {
@@ -276,14 +341,12 @@ export default function Home() {
     [dateToMoodMap]
   );
 
-  // CLEAR DATE
-  const clearDateSelection = () => {
+  const clearDateSelection = useCallback(() => {
     setSelected(null);
-  };
+  }, []);
 
-  // Calculate statistics from actual journal entries
-  const moodCounts = useMemo(() => {
-    const counts = {
+  const moodCounts = useMemo<MoodCount>(() => {
+    const counts: MoodCount = {
       happy: 0,
       sad: 0,
       angry: 0,
@@ -293,23 +356,22 @@ export default function Home() {
     };
 
     journalEntries.forEach((entry) => {
-      if (entry.mood && counts[entry.mood] !== undefined) {
-        counts[entry.mood]++;
+      if (entry.mood && counts[entry.mood as keyof MoodCount] !== undefined) {
+        counts[entry.mood as keyof MoodCount]++;
       }
     });
 
     return counts;
   }, [journalEntries]);
 
-  // STATISTIC DATA - derived from actual journal entries
-  const tasks = useMemo(() => {
+  const tasks = useMemo<PieChartData[]>(() => {
     return [
-      { name: "Happy", value: moodCounts.happy || 0 },
-      { name: "Exhausted", value: moodCounts.exhausted || 0 },
-      { name: "Angry", value: moodCounts.angry || 0 },
-      { name: "Sad", value: moodCounts.sad || 0 },
-      { name: "Neutral", value: moodCounts.neutral || 0 },
-      { name: "Anxious", value: moodCounts.anxious || 0 },
+      { name: "Happy", value: moodCounts.happy },
+      { name: "Exhausted", value: moodCounts.exhausted },
+      { name: "Angry", value: moodCounts.angry },
+      { name: "Sad", value: moodCounts.sad },
+      { name: "Neutral", value: moodCounts.neutral },
+      { name: "Anxious", value: moodCounts.anxious },
     ];
   }, [moodCounts]);
 
@@ -317,28 +379,23 @@ export default function Home() {
     return tasks.reduce((sum, task) => sum + task.value, 0);
   }, [tasks]);
 
-  // Find the dominant mood (highest value)
   const dominantMood = useMemo(() => {
     return tasks.reduce(
       (max, task) => (task.value > max.value ? task : max),
-      tasks[0]
+      tasks[0] || { name: "Neutral", value: 0 }
     );
   }, [tasks]);
 
-  // Consistent label
   const tasksNameLabel = "Journal";
 
-  // Generate mood message based on dominant mood
-  const getMoodMessage = (mood) => {
+  const getMoodMessage = useCallback((mood: PieChartData): string => {
     if (mood.name === "Happy") {
       return "That means you had more positive days than negative ones. Keep it up and continue nurturing your positive energy!";
-    } else {
-      return `You've been feeling ${mood.name.toLowerCase()} quite often. Consider activities that might help improve your mood.`;
     }
-  };
+    return `You've been feeling ${mood.name.toLowerCase()} quite often. Consider activities that might help improve your mood.`;
+  }, []);
 
-  // CARD JOURNAL
-  const moodEmojis = {
+  const moodEmojis: Record<string, JSX.Element> = {
     happy: <img src={HappyImg} alt="Happy" className="mood-emojis" />,
     sad: <img src={SadImg} alt="Sad" className="mood-emojis" />,
     angry: <img src={AngryImg} alt="Angry" className="mood-emojis" />,
@@ -367,50 +424,78 @@ export default function Home() {
     });
   }, [journalEntries, searchQuery, selected, selectedMood]);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setSelected(null);
     setSelectedMood(null);
     setSearchQuery("");
-  };
+  }, []);
 
-  const handleAddJournal = () => {
+  const handleAddJournal = useCallback(() => {
     navigate("/add-journal");
-  };
+  }, [navigate]);
 
-  // Edit journal function
-  const handleEditJournal = (id) => {
+  const handleEditJournal = useCallback(
+  (id: string) => {
     const journalToEdit = journalEntries.find((entry) => entry.id === id);
     if (journalToEdit) {
-      localStorage.setItem("journalToEdit", JSON.stringify(journalToEdit));
-      navigate("/add-journal");
+      console.log("Navigating to edit journal with data:", journalToEdit); // Tambahkan log untuk debugging
+      navigate("/add-journal", { state: { journalToEdit } });
+    } else {
+      console.error("Journal with id", id, "not found");
+      Swal.fire({
+        title: "Error",
+        text: "Journal not found",
+        icon: "error",
+        confirmButtonColor: "#92A75C",
+      });
     }
-  };
+  },
+  [journalEntries, navigate]
+);
 
-  // Delete journal with SweetAlert2
-  const handleDeleteJournal = (id) => {
-    Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, delete it!",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const updatedEntries = journalEntries.filter(
-          (entry) => entry.id !== id
-        );
-        setJournalEntries(updatedEntries);
-        localStorage.setItem("journalEntries", JSON.stringify(updatedEntries));
-        Swal.fire("Deleted!", "Your journal has been deleted.", "success");
-      }
-    });
-  };
+  const handleDeleteJournal = useCallback(
+    async (id: string) => {
+      if (!actor) return;
+
+      Swal.fire({
+        title: "Are you sure?",
+        text: "You won't be able to revert this!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Yes, delete it!",
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          try {
+            const deleteResult = await actor.deleteJournalById(BigInt(id));
+            if ("ok" in deleteResult) {
+              const updatedEntries = journalEntries.filter(
+                (entry) => entry.id !== id
+              );
+              setJournalEntries(updatedEntries);
+              Swal.fire("Deleted!", "Your journal has been deleted.", "success");
+            } else {
+              setError(extractErrorMessage(deleteResult.err));
+            }
+          } catch (error) {
+            setError("Failed to delete journal.");
+            console.error(error);
+          }
+        }
+      });
+    },
+    [journalEntries, actor]
+  );
+
+  if (!isAuthenticated) {
+    navigate("/");
+    return null;
+  }
 
   return (
     <div className="app">
-      {/* Mobile Sidebar Toggle Button */}
+      {error && <div className="alert alert-danger">{error}</div>}
       <nav className="navbar navbar-expand-lg navbar-light bg-white fixed-top d-lg-none">
         <div className="container-fluid">
           <a className="navbar-brand" href="#">
@@ -421,7 +506,7 @@ export default function Home() {
             type="button"
             onClick={toggleSidebar}
             aria-controls="navbarContent"
-            aria-expanded="false"
+            aria-expanded={sidebarActive}
             aria-label="Toggle navigation"
           >
             <span className="navbar-toggler-icon"></span>
@@ -429,54 +514,17 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* SIDEBAR */}
       <div className={`sidebar ${sidebarActive ? "active" : ""}`}>
-        <h4 className="font-caveat">Hi there, {nickname}!</h4>
+        <h4 className="font-caveat">Hi there, {displayNickname || "User"}!</h4>
         <hr />
 
-        {/* FILTER CALENDAR */}
         <div className="filter-section">
           <h5>
             <b>Filter by Calendar</b>
           </h5>
-          <DayPicker
-            className="custom-calendar"
-            mode="single"
-            selected={selected}
-            onSelect={setSelected}
-            showOutsideDays
-            modifiersClassNames={{
-              selected: "my-selected",
-              today: "my-today",
-            }}
-            modifiers={{
-              hasEntries: (date) => {
-                const dateKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
-                return dateToMoodMap.has(dateKey);
-              },
-            }}
-            components={{
-              DayContent: ({ date }) => renderDayContent(date),
-            }}
-            footer={
-              selected ? (
-                <div>
-                  Selected: {selected.toLocaleDateString()}
-                  <button
-                    onClick={clearDateSelection}
-                    className="date-clear-btn"
-                  >
-                    Clear
-                  </button>
-                </div>
-              ) : (
-                "Pick a day."
-              )
-            }
-          />
+          
         </div>
 
-        {/* FILTER BY EMOT */}
         <div className="filter-section">
           <div className="d-flex justify-content-between align-items-center">
             <h5>
@@ -517,15 +565,14 @@ export default function Home() {
           <button
             className="btn btn-outline-danger w-100 mt-2"
             onClick={handleLogout}
+            type="button"
           >
             Logout
           </button>
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
       <div className={`main-content ${sidebarActive ? "active" : ""}`}>
-        {/* STATISTIC */}
         <div className="mood-journey">
           <div className="row">
             <div className="col-lg-4 col-md-12">
@@ -538,7 +585,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Mood Icons Section */}
             <div className="col-lg-8 col-md-12 statistic">
               <div className="d-flex flex-wrap">
                 {tasks.map((mood, index) => (
@@ -568,14 +614,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* QUOTE SECTION */}
         <div className="quote-section">
           <h2 className="font-caveat">
             Dreams grow not in comfort, but in the courage to begin.
           </h2>
         </div>
 
-        {/* CARD JOURNAL */}
         <div className="journal-section">
           <h5>
             <b>Journal Entries</b>
@@ -639,6 +683,7 @@ export default function Home() {
                     <button
                       className="btn-card"
                       onClick={() => handleEditJournal(entry.id)}
+                      type="button"
                     >
                       <FaPen size={14} />
                       <span> Edit</span>
@@ -647,6 +692,7 @@ export default function Home() {
                     <button
                       className="btn-card"
                       onClick={() => handleDeleteJournal(entry.id)}
+                      type="button"
                     >
                       <FaTrashAlt size={14} />
                       <span> Delete</span>
@@ -666,4 +712,6 @@ export default function Home() {
       </div>
     </div>
   );
-}
+};
+
+export default Home;

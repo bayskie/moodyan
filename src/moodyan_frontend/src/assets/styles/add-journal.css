@@ -8,6 +8,10 @@
     background-color: #f8f9fa;
     height: 100vh;
   }
+
+  .journal-content2 {
+    height: 70vh;
+  }
   
   .journal-reflection {
     background-color: #F9F5F4;
@@ -124,5 +128,8 @@
     .journal-editor {
       background-color: #f8f9fa;
       height: 100%;
+    }
+    .journal-content2 {
+      height: 45vh;
     }
   }
