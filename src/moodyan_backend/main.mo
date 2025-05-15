@@ -76,6 +76,7 @@ actor {
       reflection = ?"";
     };
 
+    // let analysisResult : ?Types.AnalysisResult = null;
     let analysisResult : ?Types.AnalysisResult = await Utils.analyzeJournal(content);
 
     let journal = switch (analysisResult) {
@@ -95,6 +96,7 @@ actor {
       func(userJournal) {
         userJournal.put(journalEntryId, journal);
         checkAchievements(caller);
+        checkAchievements(caller);
         return #ok(journal);
       },
     );
@@ -102,9 +104,11 @@ actor {
 
   public query ({ caller }) func findAllJournals(moodFilter : ?Text, dateFilter : ?Time.Time) : async [Types.Journal] {
     return findAllUserJournals(caller, moodFilter, dateFilter);
+    return findAllUserJournals(caller, moodFilter, dateFilter);
   };
 
   public query ({ caller }) func findJournalById(id : Nat) : async Result.Result<Types.Journal, Types.Error> {
+    return findUserJournalById(caller, id);
     return findUserJournalById(caller, id);
   };
 
