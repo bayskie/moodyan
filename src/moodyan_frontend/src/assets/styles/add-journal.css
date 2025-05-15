@@ -1,135 +1,136 @@
 /* AddJournal.css */
 
 .journal-container {
-    min-height: 100vh;
+  min-height: 100vh;
+}
+
+.journal-editor {
+  background-color: #f8f9fa;
+  height: 100vh;
+}
+
+.journal-content2 {
+  height: 70vh;
+}
+
+.journal-reflection {
+  background-color: #F9F5F4;
+  height: 100;
+}
+
+.journal-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.journal-title {
+  font-weight: bold;
+  margin-bottom: 0;
+}
+
+.journal-date {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.journal-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.journal-display {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 0.375rem;
+  box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+  white-space: pre-wrap;
+}
+
+.mood-card {
+  max-height: 400px;
+  max-width: 300px;
+  margin: 0 auto;
+  display: block;
+}
+
+.reflection-container {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 0.375rem;
+  box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+  text-align: left;
+}
+
+.reflection-title {
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.primary-button {
+  background-color: #92A75C;
+  color: #F9F5F4;
+}
+
+.primary-button:hover {
+  background-color: #7d8f4e;
+  color: #F9F5F4;
+}
+
+.loading-container {
+  text-align: center;
+  padding: 3rem;
+}
+
+.empty-reflection {
+  text-align: center;
+  padding: 3rem;
+  background-color: #fff;
+  border-radius: 0.375rem;
+  box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+}
+
+/* Responsive styles */
+@media (max-width: 767.98px) {
+  .journal-header {
+    flex-direction: column;
+    align-items: start;
   }
-  
+
+  .journal-buttons {
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 1rem;
+  }
+
+  .journal-buttons .btn {
+    margin-bottom: 0.5rem;
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .mood-card {
+    max-height: 180px;
+  }
+
+}
+
+@media (max-width: 575.98px) {
+  .journal-buttons .btn {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+  }
+
   .journal-editor {
     background-color: #f8f9fa;
-    height: 100vh;
+    height: 100%;
   }
 
   .journal-content2 {
-    height: 70vh;
+    height: 45vh;
   }
-  
-  .journal-reflection {
-    background-color: #F9F5F4;
-    height: 100;
-  }
-  
-  .journal-header {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-  
-  .journal-title {
-    font-weight: bold;
-    margin-bottom: 0;
-  }
-  
-  .journal-date {
-    font-size: 0.875rem;
-    color: #6c757d;
-  }
-  
-  .journal-buttons {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-  }
-  
-  .journal-display {
-    background-color: #fff;
-    padding: 1.5rem;
-    border-radius: 0.375rem;
-    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
-    white-space: pre-wrap;
-  }
-  
-  .mood-card {
-    max-height: 400px;
-    max-width: 300px;
-    margin: 0 auto;
-    display: block;
-  }
-  
-  .reflection-container {
-    background-color: #fff;
-    padding: 1.5rem;
-    border-radius: 0.375rem;
-    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
-    text-align: left;
-  }
-  
-  .reflection-title {
-    border-bottom: 1px solid #dee2e6;
-    padding-bottom: 0.5rem;
-    margin-bottom: 1rem;
-  }
-  
-  .primary-button {
-    background-color: #92A75C;
-    color: #F9F5F4;
-  }
-  
-  .primary-button:hover {
-    background-color: #7d8f4e;
-    color: #F9F5F4;
-  }
-  
-  .loading-container {
-    text-align: center;
-    padding: 3rem;
-  }
-  
-  .empty-reflection {
-    text-align: center;
-    padding: 3rem;
-    background-color: #fff;
-    border-radius: 0.375rem;
-    box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
-  }
-  
-  /* Responsive styles */
-  @media (max-width: 767.98px) {
-    .journal-header {
-      flex-direction: column;
-      align-items: start;
-    }
-    
-    .journal-buttons {
-      flex-wrap: wrap;
-      width: 100%;
-      justify-content: space-between;
-      margin-top: 1rem;
-    }
-    
-    .journal-buttons .btn {
-      margin-bottom: 0.5rem;
-      flex: 1;
-      min-width: 100px;
-    }
-    
-    .mood-card {
-      max-height: 180px;
-    }
-    
-  }
-  
-  @media (max-width: 575.98px) {
-    .journal-buttons .btn {
-      font-size: 0.875rem;
-      padding: 0.25rem 0.5rem;
-    }
-
-    .journal-editor {
-      background-color: #f8f9fa;
-      height: 100%;
-    }
-    .journal-content2 {
-      height: 45vh;
-    }
-  }
+}

@@ -147,7 +147,7 @@ export default function AddJournal() {
 
   const formatDate = (date: Date | null): string => {
     if (!date) return "";
-    return date.toLocaleString("id-ID", {
+    return date.toLocaleString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: false,

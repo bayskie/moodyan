@@ -1,16 +1,5 @@
 {
   "canisters": {
-    "internet_identity": {
-      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
-      "type": "custom",
-      "specified_id": "rdmx6-jaaaa-aaaaa-aaadq-cai",
-      "remote": {
-        "id": {
-          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
-        }
-      },
-      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
-    },
     "llm": {
       "type": "custom",
       "wasm": "https://github.com/dfinity/llm/releases/latest/download/llm-canister-ollama.wasm",
@@ -24,8 +13,7 @@
     },
     "moodyan_backend": {
       "dependencies": [
-        "llm",
-        "internet_identity"
+        "llm"
       ],
       "main": "src/moodyan_backend/main.mo",
       "type": "motoko"

@@ -98,9 +98,9 @@ export default function Test() {
 
             {isAuthenticated && principal && (
               <div>
-                <p>
+                {/* <p>
                   Your Principal: <br /> <strong>{principal.toString()}</strong>
-                </p>
+                </p> */}
               </div>
             )}
           </div>

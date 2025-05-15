@@ -100,6 +100,7 @@ actor {
       #err(#NotFound("User journal was not found")),
       func(userJournal) {
         userJournal.put(journalEntryId, journal);
+        checkAchievements(caller);
         return #ok(journal);
       },
     );
@@ -401,7 +402,7 @@ actor {
     };
   };
 
-  private func _checkAchievements(user : Principal) {
+  private func checkAchievements(user : Principal) {
     ensureUserAchievementsExists(user);
 
     let userJournalsMap = findAllUserJournals(user, null, null);

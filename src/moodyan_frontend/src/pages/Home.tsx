@@ -23,6 +23,7 @@ import SadSound from "../assets/music/sad.mp3";
 import AngrySound from "../assets/music/angry.mp3";
 import AnxiousSound from "../assets/music/anxious.mp3";
 import ExhaustedSound from "../assets/music/exhausted.mp3";
+import { Achievement } from "declarations/moodyan_backend/moodyan_backend.did";
 
 interface Journal {
   id: bigint;
@@ -34,6 +35,7 @@ interface Journal {
 
 interface Actor {
   findAllJournals: (arg1: any[], arg2: any[]) => Promise<Journal[]>;
+  findAllAchievements: () => Promise<Achievement[]>;
   getNickname: () => Promise<{ ok: string } | { err: unknown }>;
   deleteJournalById: (id: bigint) => Promise<{ ok: unknown } | { err: unknown }>;
 }
@@ -268,6 +270,7 @@ const Home: React.FC = () => {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
+  const [activeAchievemnt, setActiveAchievemnt] = useState<Achievement | null>(null);
   const [sidebarActive, setSidebarActive] = useState<boolean>(false);
   const navigate = useNavigate();
   const { playSound } = useAudio();
@@ -321,6 +324,18 @@ const Home: React.FC = () => {
     }
   };
 
+  const fetchAchievemnts = async (): Promise<void> => {
+    if (!actor) return;
+    try {
+      const result: Achievement[] = await actor.findAllAchievements() || [];
+      const sortedResult = result.sort((a, b) => Number(a.level - b.level));
+      setActiveAchievemnt(sortedResult[0]);
+    } catch (error: unknown) {
+      setError("Failed to fetch achievemnts.");
+      console.error("Error fetching achievemnts:", error);
+    }
+  };
+
   const handleLogout = async (): Promise<void> => {
     try {
       await logout();
@@ -348,6 +363,7 @@ const Home: React.FC = () => {
     if (isAuthenticated && actor) {
       getNickname();
       fetchJournals();
+      fetchAchievemnts();
     }
   }, [isAuthenticated, actor]);
 
@@ -449,23 +465,11 @@ const Home: React.FC = () => {
 
   // Determine which level badge to show based on journal count
   const userBadge = useMemo(() => {
-    if (totalTasks >= 60) {
+    if (activeAchievemnt) {
       return {
-        image: Level3,
-        level: 3,
-        title: "Streak Seeker Level 3"
-      };
-    } else if (totalTasks >= 30) {
-      return {
-        image: Level2,
-        level: 2,
-        title: "Streak Seeker Level 2"
-      };
-    } else if (totalTasks >= 10) {
-      return {
-        image: Level1,
-        level: 1,
-        title: "Streak Seeker Level 1"
+        image: activeAchievemnt.level === BigInt(1) ? Level1 : activeAchievemnt.level === BigInt(2) ? Level2 : Level3,
+        level: activeAchievemnt.level,
+        title: activeAchievemnt.title,
       };
     } else {
       return {
@@ -486,13 +490,11 @@ const Home: React.FC = () => {
       prevTotalTasksRef.current = totalTasks;
       return;
     }
-
-    // Check if user exactly reached a milestone
     if (totalTasks === 10 && prevTotalTasksRef.current < 10) {
       // Level 1 Achievement
       Swal.fire({
         title: 'Congratulations!',
-        text: 'You have reached Streak Seeker Level 1!',
+        text: "You've taken the first big step, 10 entries completed!",
         imageUrl: Level1,
         imageWidth: 150,
         imageHeight: 150,
@@ -504,7 +506,7 @@ const Home: React.FC = () => {
       // Level 2 Achievement
       Swal.fire({
         title: 'Congratulations!',
-        text: 'You have reached Streak Seeker Level 2!',
+        text: "Consistency is paying off, 30 entries done!",
         imageUrl: Level2,
         imageWidth: 150,
         imageHeight: 150,
@@ -516,7 +518,7 @@ const Home: React.FC = () => {
       // Level 3 Achievement
       Swal.fire({
         title: 'Congratulations!',
-        text: 'You have reached Streak Seeker Level 3!',
+        text: "60 reflections in your journey. What a milestone!",
         imageUrl: Level3,
         imageWidth: 150,
         imageHeight: 150,
@@ -525,8 +527,6 @@ const Home: React.FC = () => {
         confirmButtonText: 'Amazing!'
       });
     }
-
-    // Update previous task count
     prevTotalTasksRef.current = totalTasks;
   }, [totalTasks]);
 
@@ -604,8 +604,8 @@ const Home: React.FC = () => {
         text: "You won't be able to revert this!",
         icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#d3085d6",
         confirmButtonText: "Yes, delete it!",
       }).then(async (result) => {
         if (result.isConfirmed) {
