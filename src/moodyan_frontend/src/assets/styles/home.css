@@ -1,0 +1,515 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat+Brush&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&display=swap');
+
+* {
+  font-family: 'Nunito', sans-serif;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.font-caveat {
+  font-family: "Caveat Brush", cursive;
+}
+
+/* App Layout */
+.app {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px;
+  background-color: #fafafa;
+  color: black;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+.mobile-sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  z-index: 1001;
+  background-color: #ffb400;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.filter-section {
+  margin-bottom: 0px;
+}
+
+.custom-calendar {
+  transform: scale(0.7);
+  transform-origin: top left;
+  background-color: #f2f2ec;
+  border-radius: 12px;
+  padding: 5px;
+  width: 320px;
+  margin-bottom: -80px;
+  /* Reduce space after calendar */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.my-selected {
+  color: black;
+  border: 3px solid #000000;
+  border-radius: 50%;
+  /* Membuat lingkaran */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* .my-selected:not(.my-today) {
+  background-color: #000000;
+} */
+
+.my-today:not(.my-selected) {
+  color: white;
+  background-color: #ffb400;
+  font-weight: bold;
+}
+
+.profile {
+  font-family: "Caveat Brush", cursive;
+  padding-left: 10px;
+  margin-top: 10px;
+}
+
+.achievment {
+  width: 20%;
+}
+
+.mood-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: center;
+  margin-top: 5px;
+}
+
+.mood-btn {
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0.2px;
+}
+
+.mood-btn.active {
+  border-color: #000000;
+}
+
+.mood-filter {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.selected-mood-info {
+  margin-top: 3px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.clear-filter-btn {
+  background-color: #ffb400;
+  color: white;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  border-radius: 5px;
+  border: none;
+}
+
+.date-clear-btn {
+  background-color: #ffb400;
+  color: white;
+  padding: 2px 6px;
+  margin-left: 5px;
+  font-size: 0.7rem;
+  border-radius: 4px;
+  border: none;
+}
+
+.logo-section {
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+/* MAIN CONTENT */
+.main-content {
+  flex: 1;
+  margin-left: 260px;
+  width: calc(100% - 260px);
+  transition: all 0.3s ease;
+}
+
+/* STATISTIC */
+.mood-journey {
+  background-image: url("../images/Statistic.png");
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  margin: 20px;
+}
+
+.title-statistik {
+  font-family: "Caveat Brush", cursive;
+}
+
+.title-statistik span {
+  color: #E2A20D;
+  font-family: "Caveat Brush", cursive;
+}
+
+.statistic {
+  margin-top: 50px;
+}
+
+.quote-section {
+  background-image: url('../images/Quotes.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-radius: 10px;
+  padding: 30px;
+  margin: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.quote-section h2 {
+  color: transparent;
+}
+
+/* CARD JOURNAL */
+.journal-section {
+  padding: 20px;
+}
+
+.journal-section h5 {
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.search-filter {
+  display: flex;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.search-bar {
+  flex-grow: 1;
+  position: relative;
+  border-radius: 25px;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  padding-left: 20px;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 12px 20px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  background: transparent;
+}
+
+.journal-entries {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.journal-card {
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  border-left: 5px solid transparent;
+  transition: transform 0.2s;
+}
+
+.journal-card:hover {
+  transform: translateY(-5px);
+}
+
+/* Mood colors */
+.journal-card.happy {
+  border-left-color: #F3AC06;
+  background-color: rgba(255, 225, 146, 0.75);
+}
+
+.journal-card.anxious {
+  border-left-color: #9C72D9;
+  background-color: rgba(204, 178, 241, 0.75);
+}
+
+.journal-card.angry {
+  border-left-color: #660110;
+  background-color: rgba(249, 130, 117, 0.75);
+}
+
+.journal-card.exhausted {
+  border-left-color: #5C7A3A;
+  background-color: rgba(231, 234, 165, 0.75);
+}
+
+.journal-card.sad {
+  border-left-color: #3CB8D9;
+  background-color: rgba(220, 232, 244, 0.75);
+}
+
+.journal-card.neutral {
+  border-left-color: #A0A0A0;
+  background-color: rgba(230, 230, 230, 0.75);
+}
+
+.mood-indicator {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+}
+
+.journal-card h3 {
+  margin-bottom: 5px;
+  font-size: 1.1rem;
+  color: #333;
+  padding-right: 40px;
+  /* Make room for the mood emoji */
+}
+
+.journal-date {
+  font-size: 0.8rem;
+  color: #888;
+  margin-bottom: 15px;
+}
+
+.journal-content {
+  margin-bottom: 15px;
+  line-height: 1.5;
+  font-size: 0.85rem;
+}
+
+.journal-actions {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-card {
+  background-color: transparent;
+  border: none;
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  color: #555;
+  border-radius: 5px;
+  transition: background-color 0.2s;
+}
+
+.btn-card:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.plus-icon {
+  font-size: 3rem;
+  color: #555;
+  margin-bottom: 10px;
+}
+
+.mood-emojis {
+  width: 36px;
+  height: 36px;
+}
+
+.mood-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 15px;
+}
+
+.dominant-mood-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.no-entries {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 30px;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  color: #888;
+}
+
+/* Responsive styles */
+@media (max-width: 1200px) {
+  .mood-journey {
+    flex-direction: column;
+  }
+
+  .dominant-mood-center {
+    margin-bottom: 20px;
+  }
+}
+
+@media (max-width: 992px) {
+  .sidebar {
+    width: 220px;
+  }
+
+  .main-content {
+    margin-left: 220px;
+    width: calc(100% - 220px);
+  }
+
+  .custom-calendar {
+    transform: scale(0.65);
+    width: 300px;
+  }
+
+  .mood-buttons {
+    gap: 0px;
+  }
+
+  .mood-filter {
+    width: 35px;
+    height: 35px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mobile-sidebar-toggle {
+    display: block;
+  }
+
+  .sidebar {
+    padding-top: 80px;
+    width: 240px;
+    transform: translateX(-100%);
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding-top: 50px;
+  }
+
+  .mood-journey {
+    margin: 10px;
+    padding: 15px;
+  }
+
+  .quote-section {
+    margin: 10px;
+    padding: 20px;
+  }
+
+  .journal-section {
+    padding: 10px;
+  }
+
+  .journal-entries {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .mood-journey {
+    background-position: center;
+  }
+
+  .navbar-brand {
+    font-weight: bold;
+  }
+
+  .mood-journey .col-lg-6 {
+    text-align: center;
+  }
+
+  .mood-journey .d-flex {
+    justify-content: center;
+  }
+
+  .statistic {
+    margin-top: 0px;
+  }
+
+  .quote-section {
+    background-position: right;
+  }
+
+  .journal-entries {
+    grid-template-columns: 1fr;
+  }
+
+  .search-bar input {
+    padding: 10px 15px;
+  }
+
+  .mood-emojis {
+    width: 32px;
+    height: 32px;
+  }
+
+  .custom-calendar {
+    transform: scale(0.6);
+    transform-origin: top center;
+    width: 320px;
+    margin: 0;
+    padding: 5px;
+    margin-bottom: -110px;
+    margin-left: -60px;
+  }
+
+
+  .filter-section {
+    margin-top: 10px;
+  }
+
+  .mood-buttons {
+    justify-content: space-between;
+  }
+
+  .mood-filter {
+    width: 30px;
+    height: 30px;
+  }
+}

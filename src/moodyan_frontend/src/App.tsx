@@ -1,21 +1,21 @@
-import React from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import LoginPage from "./Login/Login";
-import HomePage from "./Home/Home";
-import AddJournal from "./AddJournal/AddJournal";
+import Welcome from "./pages/Welcome";
+import Home from "./pages/Home";
+import AddJournal from "./pages/AddJournal";
 import ProtectedRoute from "./components/ProtectedRoute";
-
+import Test from "./pages/Test";
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/test" element={<Test />} />
+        <Route path="/" element={<Welcome />} />
         <Route
           path="/home"
           element={
             <ProtectedRoute>
-              <HomePage />
+              <Home />
             </ProtectedRoute>
           }
         />
@@ -27,6 +27,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/test" element={<Test />} />
       </Routes>
     </Router>
   );

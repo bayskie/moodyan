@@ -10,19 +10,15 @@ module {
         if (Text.size(title) == 0) {
             return #err(#InvalidInput("Journal title cannot be empty"));
         };
-
         if (Text.size(content) == 0) {
             return #err(#InvalidInput("Journal content cannot be empty"));
         };
-
         if (Text.size(title) > 100) {
-            return #err(#InvalidInput("Journal title cannot be longer than 100 characters"));
+            return #err(#InvalidInput("Journal title too long (max 100 characters)"));
         };
-
         if (Text.size(content) > 1000) {
-            return #err(#InvalidInput("Journal content cannot be longer than 1000 characters"));
+            return #err(#InvalidInput("Journal content too long (max 1000 characters)"));
         };
-
         return #ok("Journal validated successfully");
     };
 
@@ -54,7 +50,6 @@ module {
     };
 
     public func toEpochDay(timestamp : Time.Time) : Time.Time {
-        // 86,400 seconds in a day * 1 billion nanoseconds in a second
         let nanosecondsInOneDay = 86_400 * 1_000_000_000;
         return timestamp / nanosecondsInOneDay;
     };

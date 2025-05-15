@@ -32,4 +32,9 @@ module {
     #NotAuthorized : Text;
     #InvalidInput : Text;
   };
+
+  public type UserProfile = {
+    nickname : Text;
+    createdAt : Int;
+  };
 };

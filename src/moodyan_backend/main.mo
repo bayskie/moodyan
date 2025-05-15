@@ -20,6 +20,39 @@ actor {
 
   private var userJournals = HashMap.HashMap<Principal, UserJournal>(10, Principal.equal, Principal.hash);
   private var userAchievements = HashMap.HashMap<Principal, UserAchievement>(10, Principal.equal, Principal.hash);
+  private var userProfiles = HashMap.HashMap<Principal, Types.UserProfile>(10, Principal.equal, Principal.hash);
+
+  public shared ({ caller }) func saveNickname(nickname : Text) : async Result.Result<(), Types.Error> {
+    if (Text.size(nickname) == 0) {
+      return #err(#InvalidInput("Nickname cannot be empty"));
+    };
+    if (Text.size(nickname) > 32) {
+      return #err(#InvalidInput("Nickname too long (max 32 characters)"));
+    };
+
+    let profile : Types.UserProfile = {
+      nickname = nickname;
+      createdAt = Time.now();
+    };
+
+    userProfiles.put(caller, profile);
+    #ok(());
+  };
+
+  public query ({ caller }) func getNickname() : async Result.Result<Text, Types.Error> {
+    switch (userProfiles.get(caller)) {
+      case (?profile) {
+        #ok(profile.nickname);
+      };
+      case (null) {
+        #err(#NotFound("Nickname not set"));
+      };
+    };
+  };
+
+  public query ({ caller }) func whoami() : async Principal {
+    return caller;
+  };
 
   public shared ({ caller }) func createJournal(title : Text, content : Text) : async Result.Result<Types.Journal, Types.Error> {
     ensureUserJournalExists(caller);
@@ -63,6 +96,7 @@ actor {
       func(userJournal) {
         userJournal.put(journalEntryId, journal);
         checkAchievements(caller);
+        checkAchievements(caller);
         return #ok(journal);
       },
     );
@@ -70,9 +104,11 @@ actor {
 
   public query ({ caller }) func findAllJournals(moodFilter : ?Text, dateFilter : ?Time.Time) : async [Types.Journal] {
     return findAllUserJournals(caller, moodFilter, dateFilter);
+    return findAllUserJournals(caller, moodFilter, dateFilter);
   };
 
   public query ({ caller }) func findJournalById(id : Nat) : async Result.Result<Types.Journal, Types.Error> {
+    return findUserJournalById(caller, id);
     return findUserJournalById(caller, id);
   };
 
