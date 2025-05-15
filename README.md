@@ -1,59 +1,72 @@
-# `moodyan`
+![Moodyan](/assets/cover.jpg)
 
-Welcome to your new `moodyan` project and to the Internet Computer development community. By default, creating a new project adds this README and some template files to your project directory. You can edit these template files to customize your project and to include your own code to speed up the development cycle.
+# 🌙 Moodyan — Your Mood, Reflected on the Blockchain
 
-To get started, you might want to explore the project directory structure and the default configuration file. Working with this project in your development environment will not affect any production deployment or identity tokens.
+Moodyan is a decentralized journaling app that combines the power of AI and the security of Web3 to help you understand your emotions. Track your feelings, write daily mood entries, and receive thoughtful reflections — all powered by blockchain technology and AI.
 
-To learn more before you start working with `moodyan`, see the following documentation available online:
+Built entirely on the Internet Computer Protocol (ICP), Moodyan removes the need for traditional servers or logins. Your emotions belong to you — uncensored, unmonitored, and secured in canisters on-chain.
 
-- [Quick Start](https://internetcomputer.org/docs/current/developer-docs/setup/deploy-locally)
-- [SDK Developer Tools](https://internetcomputer.org/docs/current/developer-docs/setup/install)
-- [Motoko Programming Language Guide](https://internetcomputer.org/docs/current/motoko/main/motoko)
-- [Motoko Language Quick Reference](https://internetcomputer.org/docs/current/motoko/main/language-manual)
+## 💡 Why Moodyan?
 
-If you want to start working on your project right away, you might want to try the following commands:
+In a digital world, your emotional journey deserves privacy, security, and reflection. Moodyan isn’t just a journaling app — it's a personal sanctuary built on technology that respects you.
+
+Start your journey to emotional clarity, one journal at a time.
+
+## ✨ Features
+
+### 🔐 Passwordless, Secure Login
+
+Authenticate seamlessly with [Internet Identity](https://identity.ic0.app/), a privacy-first authentication system from ICP. No passwords, no tracking, no centralized accounts.
+
+### 📓 Daily Journaling with AI Insights
+
+Write freely about your day. Moodyan's built-in AI reads your entry, detects your mood, and offers reflective responses to help you process and grow.
+
+### 📊 Mood Stats & Achievements
+
+Gain insights over time with mood graphs, emotional trends, and personal stats. Unlock achievement badges as you reach new journaling milestones.
+
+## 🚧 Coming Soon
+
+### 🧬 NFT Rewards
+
+Earn custom NFT badges as keepsakes for journaling streaks and emotional growth milestones.
+
+### 💌 Shareable Journal Cards
+
+Export your journal entries as visual quote cards you can save or share.
+
+### 📈 Advanced Analytics
+
+Gain deeper understanding through emotion heatmaps, keyword analysis, and journaling consistency reports.
+
+## 🛠️ Tech Stack
+
+- 🧠 AI: Llama 3.2:8B for natural language understanding and mood inference
+- 💻 Frontend: React with Typescript
+- 🔒 Auth: Internet Identity (ICP)
+- ⚙️ Backend: Motoko (running on Internet Computer Protocol)
+
+Moodyan runs fully on the Internet Computer, using Motoko for its backend and React with TypeScript on the frontend. It features secure login via Internet Identity and uses Llama 3.2:8B to analyze moods and generate AI reflections.
+
+## 🚀 Try It
+
+To begin building locally, you need to have [Dfinity SDK](https://sdk.dfinity.org/) installed. Then run:
 
 ```bash
 cd moodyan/
-dfx help
-dfx canister --help
+dfx start --background      # Start local replica
+dfx deploy                  # Deploy canisters & generate candid
+npm run generate            # (Re)generate candid interface
+npm start                   # Start frontend dev server at http://localhost:8080
 ```
 
-## Running the project locally
+## 🎨 Original Assets Created In-House
 
-If you want to test your project locally, you can use the following commands:
+All visual elements in Moodyan are handcrafted with care by our team — including the custom landing page, user interface, emotion icons, dynamic mood backgrounds, and achievement badges. Every detail is designed to create a warm, expressive, and personal journaling experience.
 
-```bash
-# Starts the replica, running in the background
-dfx start --background
+## 👩‍💻 Made with ❤️ by
 
-# Deploys your canisters to the replica and generates your candid interface
-dfx deploy
-```
+Built by Dila [@nadilarizky05](https://github.com/nadilarizky05) (Frontend), Gekna [@ayukrisn](https://github.com/ayukrisn) (UI/UX), and Bay [@bayskie](https://github.com/bayskie) (Backend) — a small team passionate about blending emotion, AI, and blockchain.
 
-Once the job completes, your application will be available at `http://localhost:4943?canisterId={asset_canister_id}`.
-
-If you have made changes to your backend canister, you can generate a new candid interface with
-
-```bash
-npm run generate
-```
-
-at any time. This is recommended before starting the frontend development server, and will be run automatically any time you run `dfx deploy`.
-
-If you are making frontend changes, you can start a development server with
-
-```bash
-npm start
-```
-
-Which will start a server at `http://localhost:8080`, proxying API requests to the replica at port 4943.
-
-### Note on frontend environment variables
-
-If you are hosting frontend code somewhere without using DFX, you may need to make one of the following adjustments to ensure your project does not fetch the root key in production:
-
-- set`DFX_NETWORK` to `ic` if you are using Webpack
-- use your own preferred method to replace `process.env.DFX_NETWORK` in the autogenerated declarations
-  - Setting `canisters -> {asset_canister_id} -> declarations -> env_override to a string` in `dfx.json` will replace `process.env.DFX_NETWORK` with the string in the autogenerated declarations
-- Write your own `createActor` constructor
+## 🌟 Give Moodyan a Star on [GitHub](https://github.com/bayskie/moodyan)
