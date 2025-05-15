@@ -1,6 +1,5 @@
 import Result "mo:base/Result";
 import Text "mo:base/Text";
-import Debug "mo:base/Debug";
 import Time "mo:base/Time";
 import Types "types";
 import LLM "mo:llm";
@@ -48,8 +47,7 @@ module {
                 let analysisResult : ?Types.AnalysisResult = from_candid (blob);
                 return analysisResult;
             };
-            case (#err(err)) {
-                Debug.print("error: " # err);
+            case (#err(_)) {
                 return null;
             };
         };
