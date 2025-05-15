@@ -23,13 +23,20 @@
       }
     },
     "moodyan_backend": {
-      "dependencies": ["llm", "internet_identity"],
+      "dependencies": [
+        "llm",
+        "internet_identity"
+      ],
       "main": "src/moodyan_backend/main.mo",
       "type": "motoko"
     },
     "moodyan_frontend": {
-      "dependencies": ["moodyan_backend"],
-      "source": ["src/moodyan_frontend/dist"],
+      "dependencies": [
+        "moodyan_backend"
+      ],
+      "source": [
+        "src/moodyan_frontend/dist"
+      ],
       "type": "assets",
       "workspace": "moodyan_frontend"
     }

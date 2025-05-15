@@ -18,12 +18,21 @@ module {
     reflection : Text;
   };
 
+  public type Achievement = {
+    id : Text;
+    title : Text;
+    description : Text;
+    level : Nat;
+    achievedAt : Time.Time;
+  };
+
   public type Error = {
     #NotFound : Text;
     #AlreadyExists : Text;
     #NotAuthorized : Text;
     #InvalidInput : Text;
   };
+
   public type UserProfile = {
     nickname : Text;
     createdAt : Int;

@@ -5,7 +5,7 @@ import Time "mo:base/Time";
 import Types "types";
 import LLM "mo:llm";
 import JSON "mo:serde/JSON";
-import Array "mo:base/Array";
+import _Array "mo:base/Array";
 
 module {
     public func validateJournal(title : Text, content : Text) : Result.Result<Text, Types.Error> {
@@ -42,7 +42,7 @@ module {
         let parsed = JSON.fromText(analysisJSON, null);
         switch (parsed) {
             case (#ok(blob)) {
-                let analysisResult : ?Types.AnalysisResult = from_candid(blob);
+                let analysisResult : ?Types.AnalysisResult = from_candid (blob);
                 return analysisResult;
             };
             case (#err(err)) {

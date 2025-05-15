@@ -51,7 +51,7 @@
 }
 
 .filter-section {
-  margin-bottom: 10px;
+  margin-bottom: 0px;
 }
 
 .custom-calendar {
@@ -61,14 +61,44 @@
   border-radius: 12px;
   padding: 5px;
   width: 320px;
-  margin-bottom: -20px; /* Reduce space after calendar */
+  margin-bottom: -80px;
+  /* Reduce space after calendar */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
+
+.my-selected {
+  color: black;
+  border: 3px solid #000000;
+  border-radius: 50%;
+  /* Membuat lingkaran */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* .my-selected:not(.my-today) {
+  background-color: #000000;
+} */
 
 .my-today:not(.my-selected) {
   color: white;
   background-color: #ffb400;
   font-weight: bold;
+}
+
+.profile {
+  font-family: "Caveat Brush", cursive;
+  padding-left: 10px;
+  margin-top: 10px;
+}
+
+.achievment {
+  width: 20%;
+}
+
+.achievment:hover {
+  box-shadow: 2px 10px 10px gold;
+  border-radius: 100%;
 }
 
 .mood-buttons {
@@ -277,7 +307,8 @@
   margin-bottom: 5px;
   font-size: 1.1rem;
   color: #333;
-  padding-right: 40px; /* Make room for the mood emoji */
+  padding-right: 40px;
+  /* Make room for the mood emoji */
 }
 
 .journal-date {
@@ -354,7 +385,7 @@
   .mood-journey {
     flex-direction: column;
   }
-  
+
   .dominant-mood-center {
     margin-bottom: 20px;
   }
@@ -364,21 +395,21 @@
   .sidebar {
     width: 220px;
   }
-  
+
   .main-content {
     margin-left: 220px;
     width: calc(100% - 220px);
   }
-  
+
   .custom-calendar {
     transform: scale(0.65);
     width: 300px;
   }
-  
+
   .mood-buttons {
     gap: 0px;
   }
-  
+
   .mood-filter {
     width: 35px;
     height: 35px;
@@ -389,37 +420,37 @@
   .mobile-sidebar-toggle {
     display: block;
   }
-  
+
   .sidebar {
     padding-top: 80px;
     width: 240px;
     transform: translateX(-100%);
   }
-  
+
   .sidebar.active {
     transform: translateX(0);
   }
-  
+
   .main-content {
     margin-left: 0;
     width: 100%;
     padding-top: 50px;
   }
-  
+
   .mood-journey {
     margin: 10px;
     padding: 15px;
   }
-  
+
   .quote-section {
     margin: 10px;
     padding: 20px;
   }
-  
+
   .journal-section {
     padding: 10px;
   }
-  
+
   .journal-entries {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   }
@@ -429,10 +460,15 @@
   .mood-journey {
     background-position: center;
   }
+
+  .navbar-brand {
+    font-weight: bold;
+  }
+
   .mood-journey .col-lg-6 {
     text-align: center;
   }
-  
+
   .mood-journey .d-flex {
     justify-content: center;
   }
@@ -440,39 +476,43 @@
   .statistic {
     margin-top: 0px;
   }
+
   .quote-section {
     background-position: right;
   }
+
   .journal-entries {
     grid-template-columns: 1fr;
   }
-  
+
   .search-bar input {
     padding: 10px 15px;
   }
-  
+
   .mood-emojis {
     width: 32px;
     height: 32px;
   }
-  
+
   .custom-calendar {
     transform: scale(0.6);
     transform-origin: top center;
     width: 320px;
     margin: 0;
     padding: 5px;
-  }
-
-  
-  .filter-section .custom-calendar {
+    margin-bottom: -110px;
     margin-left: -60px;
   }
-  
+
+
+  .filter-section {
+    margin-top: 10px;
+  }
+
   .mood-buttons {
     justify-content: space-between;
   }
-  
+
   .mood-filter {
     width: 30px;
     height: 30px;

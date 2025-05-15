@@ -46,17 +46,15 @@ export default function AddJournal() {
   // Inisialisasi data jurnal saat komponen dimuat
   useEffect(() => {
     if (journalToEdit) {
-      console.log("Received journalToEdit:", journalToEdit); // Log untuk debugging
+      console.log("Received journalToEdit:", journalToEdit);
       setJournalId(Number(journalToEdit.id));
       setJournalTitle(journalToEdit.title || "Untitled Journal");
       setJournalContent(journalToEdit.content || "");
       setMood((journalToEdit.mood || "neutral") as Mood);
-      // Pastikan dateObj valid, gunakan date sebagai fallback jika perlu
       setLastSaved(journalToEdit.dateObj ? new Date(journalToEdit.dateObj) : journalToEdit.date ? new Date(journalToEdit.date) : new Date());
       setIsSaved(true);
-      setIsEditing(true); // Pastikan mode edit aktif
+      setIsEditing(true);
     } else {
-      // Jika baru membuat jurnal, set tanggal saat ini
       setLastSaved(new Date());
     }
   }, [journalToEdit]);

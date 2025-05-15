@@ -7,9 +7,9 @@ import { _SERVICE } from "declarations/moodyan_backend/moodyan_backend.did";
 
 const network = process.env.DFX_NETWORK;
 const identityProvider =
-  network === "ic"
-    ? "https://identity.ic0.app"
-    : "http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:4943";
+  network === "local"
+    ? "http://rdmx6-jaaaa-aaaaa-aaadq-cai.localhost:4943"
+    : "https://identity.ic0.app";
 
 export const useAuth = () => {
   const [authClient, setAuthClient] = useState<AuthClient | null>(null);

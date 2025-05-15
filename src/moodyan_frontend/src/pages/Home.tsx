@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { PieChart, Pie, Cell, Tooltip, Label } from "recharts";
 import { useNavigate } from "react-router-dom";
@@ -7,7 +8,9 @@ import "../assets/styles/home.css";
 import { useAuth } from "../hooks/use-auth";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/style.css";
-
+import Level1 from "../assets/images/level1.png";
+import Level2 from "../assets/images/level2.png";
+import Level3 from "../assets/images/level3.png";
 // Import mood assets
 import HappyImg from "../assets/images/happy.png";
 import SadImg from "../assets/images/sad.png";
@@ -289,15 +292,28 @@ const Home: React.FC = () => {
     if (!actor) return;
     try {
       const result: Journal[] = await actor.findAllJournals([], []);
-      const formattedEntries: JournalEntry[] = result.map((journal) => ({
-        id: journal.id.toString(),
-        title: journal.title,
-        content: journal.content,
-        // Make sure to provide a default mood if mood array is empty or undefined
-        mood: journal.mood && journal.mood.length > 0 ? journal.mood[0] : "neutral",
-        date: new Date(Number(journal.createdAt) / 1_000_000).toLocaleDateString(), // Convert nanoseconds to milliseconds
-        dateObj: new Date(Number(journal.createdAt) / 1_000_000), // Convert nanoseconds to milliseconds
-      }));
+      const formattedEntries: JournalEntry[] = result.map((journal) => {
+        // Ensuring mood is always a valid value
+        let moodValue = "neutral"; // Default to neutral
+
+        if (journal.mood && Array.isArray(journal.mood) && journal.mood.length > 0) {
+          // Check if the mood exists in our MOOD_ASSETS
+          const extractedMood = journal.mood[0].toLowerCase();
+          if (extractedMood && extractedMood in MOOD_ASSETS) {
+            moodValue = extractedMood;
+          }
+        }
+
+        return {
+          id: journal.id.toString(),
+          title: journal.title,
+          content: journal.content,
+          mood: moodValue,
+          date: new Date(Number(journal.createdAt) / 1_000_000).toLocaleDateString(), // Convert nanoseconds to milliseconds
+          dateObj: new Date(Number(journal.createdAt) / 1_000_000), // Convert nanoseconds to milliseconds
+        };
+      });
+
       setJournalEntries(formattedEntries);
     } catch (error: unknown) {
       setError("Failed to fetch journals.");
@@ -392,11 +408,15 @@ const Home: React.FC = () => {
     };
 
     journalEntries.forEach((entry) => {
-      if (entry.mood) {
-        const moodKey = entry.mood.toLowerCase() as keyof MoodCount;
-        if (counts[moodKey] !== undefined) {
-          counts[moodKey]++;
-        }
+      // Make sure to convert mood to lowercase
+      const moodKey = (entry.mood || "neutral").toLowerCase() as keyof MoodCount;
+
+      // Check if it's a valid mood key
+      if (counts[moodKey] !== undefined) {
+        counts[moodKey]++;
+      } else {
+        // If it's not a valid mood, count it as neutral
+        counts.neutral++;
       }
     });
 
@@ -427,7 +447,88 @@ const Home: React.FC = () => {
     );
   }, [tasks]);
 
+  // Determine which level badge to show based on journal count
+  const userBadge = useMemo(() => {
+    if (totalTasks >= 60) {
+      return {
+        image: Level3,
+        level: 3,
+        title: "Streak Seeker Level 3"
+      };
+    } else if (totalTasks >= 30) {
+      return {
+        image: Level2,
+        level: 2,
+        title: "Streak Seeker Level 2"
+      };
+    } else if (totalTasks >= 10) {
+      return {
+        image: Level1,
+        level: 1,
+        title: "Streak Seeker Level 1"
+      };
+    } else {
+      return {
+        image: null,
+        level: 0,
+        title: "New User"
+      };
+    }
+  }, [totalTasks]);
+
   const tasksNameLabel = "Journal";
+
+  const prevTotalTasksRef = useRef(0);
+
+  useEffect(() => {
+    // Skip initial render
+    if (prevTotalTasksRef.current === 0 && totalTasks === 0) {
+      prevTotalTasksRef.current = totalTasks;
+      return;
+    }
+
+    // Check if user exactly reached a milestone
+    if (totalTasks === 10 && prevTotalTasksRef.current < 10) {
+      // Level 1 Achievement
+      Swal.fire({
+        title: 'Congratulations!',
+        text: 'You have reached Streak Seeker Level 1!',
+        imageUrl: Level1,
+        imageWidth: 150,
+        imageHeight: 150,
+        imageAlt: 'Level 1 Badge',
+        confirmButtonColor: '#92A75C',
+        confirmButtonText: 'Keep Going!'
+      });
+    } else if (totalTasks === 30 && prevTotalTasksRef.current < 30) {
+      // Level 2 Achievement
+      Swal.fire({
+        title: 'Congratulations!',
+        text: 'You have reached Streak Seeker Level 2!',
+        imageUrl: Level2,
+        imageWidth: 150,
+        imageHeight: 150,
+        imageAlt: 'Level 2 Badge',
+        confirmButtonColor: '#92A75C',
+        confirmButtonText: 'Keep Going!'
+      });
+    } else if (totalTasks === 60 && prevTotalTasksRef.current < 60) {
+      // Level 3 Achievement
+      Swal.fire({
+        title: 'Congratulations!',
+        text: 'You have reached Streak Seeker Level 3!',
+        imageUrl: Level3,
+        imageWidth: 150,
+        imageHeight: 150,
+        imageAlt: 'Level 3 Badge',
+        confirmButtonColor: '#92A75C',
+        confirmButtonText: 'Amazing!'
+      });
+    }
+
+    // Update previous task count
+    prevTotalTasksRef.current = totalTasks;
+  }, [totalTasks]);
 
   const getMoodMessage = useCallback((mood: PieChartData): string => {
     if (mood.name === "Happy") {
@@ -556,7 +657,13 @@ const Home: React.FC = () => {
       </nav>
 
       <div className={`sidebar ${sidebarActive ? "active" : ""}`}>
-        <h4 className="font-caveat">Hi there, {displayNickname || "User"}!</h4>
+        <div className="d-flex" style={{ alignItems: "center" }}>
+          {userBadge.image ? (
+            <img src={userBadge.image} alt={`Level ${userBadge.level} badge`} className="achievment" title={userBadge.title} />
+          ) : null}
+          <h4 className="profile">Hi there, {displayNickname || "User"}!</h4>
+        </div>
+
         <hr />
 
         <div className="filter-section">
@@ -598,7 +705,6 @@ const Home: React.FC = () => {
               )
             }
           />
-
         </div>
 
         <div className="filter-section">
@@ -639,7 +745,7 @@ const Home: React.FC = () => {
         <div className="logo-section">
           <h4 className="font-caveat">Moodyan</h4>
           <button
-            className="btn btn-outline-danger w-100 mt-2"
+            className="btn btn-danger w-100 mt-2"
             onClick={handleLogout}
             type="button"
           >
@@ -736,47 +842,53 @@ const Home: React.FC = () => {
             </div>
 
             {filteredJournals.length > 0 ? (
-              filteredJournals.map((entry) => (
-                <div className={`journal-card ${entry.mood}`} key={entry.id}>
-                  <div className="d-flex">
-                    <div>
-                      <h3>
-                        <b>{entry.title}</b>
-                      </h3>
-                      <p className="journal-date">{entry.date}</p>
-                    </div>
-                    <div className="mood-indicator">
-                      <span className="mood-emoji">
-                        {moodEmojis[entry.mood.toLowerCase()] || moodEmojis.neutral}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="journal-content">
-                    {entry.content.length > 100
-                      ? entry.content.substring(0, 100) + "..."
-                      : entry.content}
-                  </p>
-                  <div className="journal-actions">
-                    <button
-                      className="btn-card"
-                      onClick={() => handleEditJournal(entry.id)}
-                      type="button"
-                    >
-                      <FaPen size={14} />
-                      <span> Edit</span>
-                    </button>
+              filteredJournals.map((entry) => {
+                // Ensure mood exists in our moodEmojis object
+                const moodKey = (entry.mood || "neutral").toLowerCase();
+                const moodEmoji = moodEmojis[moodKey] || moodEmojis.neutral;
 
-                    <button
-                      className="btn-card"
-                      onClick={() => handleDeleteJournal(entry.id)}
-                      type="button"
-                    >
-                      <FaTrashAlt size={14} />
-                      <span> Delete</span>
-                    </button>
+                return (
+                  <div className={`journal-card ${entry.mood || "neutral"}`} key={entry.id}>
+                    <div className="d-flex">
+                      <div>
+                        <h3>
+                          <b>{entry.title}</b>
+                        </h3>
+                        <p className="journal-date">{entry.date}</p>
+                      </div>
+                      <div className="mood-indicator">
+                        <span className="mood-emoji">
+                          {moodEmoji}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="journal-content">
+                      {entry.content.length > 100
+                        ? entry.content.substring(0, 100) + "..."
+                        : entry.content}
+                    </p>
+                    <div className="journal-actions">
+                      <button
+                        className="btn-card"
+                        onClick={() => handleEditJournal(entry.id)}
+                        type="button"
+                      >
+                        <FaPen size={14} />
+                        <span> Edit</span>
+                      </button>
+
+                      <button
+                        className="btn-card"
+                        onClick={() => handleDeleteJournal(entry.id)}
+                        type="button"
+                      >
+                        <FaTrashAlt size={14} />
+                        <span> Delete</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="no-entries">
                 No journal entries found
